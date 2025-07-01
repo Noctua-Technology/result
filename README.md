@@ -47,8 +47,8 @@ if (asyncResult.ok) {
 
 ## API
 
-- `Ok<T>(value: T)`: Represents a successful result.
-- `Err<E>(error: E)`: Represents an error result.
+- `Result.ok<T>(value: T)`: Represents a successful result.
+- `Result.err<E>(error: E)`: Represents an error result.
 - `Result.wrap(fn)`: Wraps a function that may throw, returning `Ok` or `Err`.
 - `Result.wrapAsync(fn)`: Wraps an async function that may throw/reject, returning a Promise of `Ok` or `Err`.
 - `Result.isResult(val)`: Checks if a value is a `Result`.
