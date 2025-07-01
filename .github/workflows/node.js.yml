@@ -28,7 +28,4 @@ jobs:
 
       - run: npm ci
       - run: npm run build
-      - name: Test
-        env:
-          NODE_OPTIONS: "--experimental-test"
-        run: npm test
+      - run: npm test
