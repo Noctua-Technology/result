@@ -1,3 +1,6 @@
+// BASELINE CODE FORKED FROM https://github.com/deebloo/ts-results
+import { toString } from "./util.js";
+
 interface BaseResult<T, E>
   extends Iterable<T extends Iterable<infer U> ? U : never> {
   /** `true` when the result is Ok */ readonly ok: boolean;
@@ -29,7 +32,7 @@ interface BaseResult<T, E>
    *
    *  (This is the `unwrap_or` in rust)
    */
-  unwrapOr<T2>(val: T2): T | T2;
+  unwrapOr<T2 extends T>(val: T2): T | T2;
 
   /**
    * Calls `mapper` if the result is `Ok`, otherwise returns the `Err` value of self.
@@ -65,7 +68,7 @@ export class Err<E> implements BaseResult<never, E> {
   readonly err: true = true;
   readonly val: E;
 
-  private readonly _stack!: string;
+  #stack: string = "";
 
   [Symbol.iterator](): Iterator<never, never, any> {
     return {
@@ -73,6 +76,10 @@ export class Err<E> implements BaseResult<never, E> {
         return { done: true, value: undefined! };
       },
     };
+  }
+
+  get stack(): string | undefined {
+    return `${this}\n${this.#stack}`;
   }
 
   constructor(val: E) {
@@ -87,7 +94,7 @@ export class Err<E> implements BaseResult<never, E> {
       stackLines.shift();
     }
 
-    this._stack = stackLines.join("\n");
+    this.#stack = stackLines.join("\n");
   }
 
   unwrapOr<T2>(val: T2): T2 {
@@ -95,7 +102,7 @@ export class Err<E> implements BaseResult<never, E> {
   }
 
   expect(msg: string): never {
-    throw new Error(`${msg} - Error: ${toString(this.val)}\n${this._stack}`);
+    throw new Error(`${msg} - Error: ${toString(this.val)}\n${this.#stack}`);
   }
 
   expectErr(_msg: string): E {
@@ -104,7 +111,7 @@ export class Err<E> implements BaseResult<never, E> {
 
   unwrap(): never {
     throw new Error(
-      `Tried to unwrap Error: ${toString(this.val)}\n${this._stack}`
+      `Tried to unwrap Error: ${toString(this.val)}\n${this.#stack}`
     );
   }
 
@@ -123,10 +130,6 @@ export class Err<E> implements BaseResult<never, E> {
   toString(): string {
     return `Err(${toString(this.val)})`;
   }
-
-  get stack(): string | undefined {
-    return `${this}\n${this._stack}`;
-  }
 }
 
 /**
@@ -142,10 +145,6 @@ export class Ok<T> implements BaseResult<T, never> {
    */
   [Symbol.iterator](): Iterator<T extends Iterable<infer U> ? U : never> {
     const obj = Object(this.val) as Iterable<any>;
-
-    console.log("######", Object(this.val));
-
-    console.log(Symbol.iterator in obj);
 
     return Symbol.iterator in obj
       ? obj[Symbol.iterator]()
@@ -212,6 +211,14 @@ export class Ok<T> implements BaseResult<T, never> {
 export type Result<T, E> = Ok<T> | Err<E>;
 
 export namespace Result {
+  export function ok<T>(val: T): Ok<T> {
+    return new Ok(val);
+  }
+
+  export function err<T>(val: T): Err<T> {
+    return new Err(val);
+  }
+
   /**
    * Wrap an operation that may throw an Error (`try-catch` style) into checked exception style
    * @param op The operation function
@@ -228,7 +235,7 @@ export namespace Result {
    * Wrap an async operation that may throw an Error (`try-catch` style) into checked exception style
    * @param op The operation function
    */
-  export function wrapAsync<T, E = unknown>(
+  export async function wrapAsync<T, E = unknown>(
     op: () => Promise<T>
   ): Promise<Result<T, E>> {
     try {
@@ -236,7 +243,7 @@ export namespace Result {
         .then((val) => new Ok(val))
         .catch((e) => new Err(e));
     } catch (e) {
-      return Promise.resolve(new Err(e as E));
+      return new Err(e as E);
     }
   }
 
@@ -245,14 +252,4 @@ export namespace Result {
   ): val is Result<T, E> {
     return val instanceof Err || val instanceof Ok;
   }
-}
-
-export function toString(val: unknown): string {
-  let value = String(val);
-  if (value === "[object Object]") {
-    try {
-      value = JSON.stringify(val);
-    } catch {}
-  }
-  return value;
 }
