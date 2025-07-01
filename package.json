@@ -6,6 +6,7 @@
   "exports": {
     ".": "./target/lib.js"
   },
+  "sideEffects": false,
   "scripts": {
     "build": "wireit",
     "test": "wireit"
