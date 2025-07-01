@@ -24,7 +24,7 @@
       ]
     },
     "test": {
-      "command": "node --test **/*.test.js",
+      "command": "node --test \"./target/**/*.test.js\"",
       "dependencies": [
         "build"
       ]
