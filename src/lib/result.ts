@@ -58,6 +58,8 @@ interface BaseResult<T, E>
    * This function can be used to pass through a successful result while handling an error.
    */
   mapErr<F>(mapper: (val: E) => F): Result<T, F>;
+
+  retry(n: number): Result<T, E>;
 }
 
 /**
@@ -129,6 +131,10 @@ export class Err<E> implements BaseResult<never, E> {
 
   toString(): string {
     return `Err(${toString(this.val)})`;
+  }
+
+  retry(n: number): Err<E> {
+    return this;
   }
 }
 
@@ -206,6 +212,10 @@ export class Ok<T> implements BaseResult<T, never> {
   toString(): string {
     return `Ok(${toString(this.val)})`;
   }
+
+  retry(n: number): Ok<T> {
+    return this;
+  }
 }
 
 export type Result<T, E> = Ok<T> | Err<E>;
@@ -247,9 +257,34 @@ export namespace Result {
     }
   }
 
+  export async function attempt<T, E>(
+    cb: () => Promise<Result<T, E>>,
+    { attempts = 3, timeout = 1000, backoff = 0.5 } = {}
+  ) {
+    let count = 1;
+    let waitTime = timeout;
+
+    let res = await cb();
+
+    while (res.err && count < attempts) {
+      await wait(waitTime);
+
+      res = await cb();
+
+      count++;
+      waitTime = timeout * Math.pow(1 + backoff, count); // update wait time
+    }
+
+    return res;
+  }
+
   export function isResult<T = any, E = any>(
     val: unknown
   ): val is Result<T, E> {
     return val instanceof Err || val instanceof Ok;
   }
+}
+
+function wait(time: number) {
+  return new Promise((resolve) => setTimeout(resolve, time));
 }
