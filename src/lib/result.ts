@@ -58,8 +58,6 @@ interface BaseResult<T, E>
    * This function can be used to pass through a successful result while handling an error.
    */
   mapErr<F>(mapper: (val: E) => F): Result<T, F>;
-
-  retry(n: number): Result<T, E>;
 }
 
 /**
@@ -134,10 +132,6 @@ export class Err<E> implements BaseResult<never, E> {
   toString(): string {
     return `Err(${toString(this.val)})`;
   }
-
-  retry(n: number): Err<E> {
-    return this;
-  }
 }
 
 /**
@@ -198,25 +192,8 @@ export class Ok<T> implements BaseResult<T, never> {
     return this;
   }
 
-  /**
-   * Returns the contained `Ok` value, but never throws.
-   * Unlike `unwrap()`, this method doesn't throw and is only callable on an Ok<T>
-   *
-   * Therefore, it can be used instead of `unwrap()` as a maintainability safeguard
-   * that will fail to compile if the error type of the Result is later changed to an error that can actually occur.
-   *
-   * (this is the `into_ok()` in rust)
-   */
-  safeUnwrap(): T {
-    return this.val;
-  }
-
   toString(): string {
     return `Ok(${toString(this.val)})`;
-  }
-
-  retry(n: number): Ok<T> {
-    return this;
   }
 }
 

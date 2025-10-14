@@ -61,12 +61,6 @@ describe("Result", () => {
       assert.strictEqual(mapped.unwrap(), "success");
     });
 
-    it("should return safe unwrapped value", () => {
-      const result = new Ok("safe");
-
-      assert.strictEqual(result.safeUnwrap(), "safe");
-    });
-
     it("should convert to string correctly", () => {
       const result = new Ok("test");
 
@@ -303,7 +297,7 @@ describe("Result", () => {
         .map((x) => x.toString());
 
       assert.instanceOf(result, Ok);
-      assert.strictEqual(result.unwrap(), "13");
+      assert.strictEqual(result.val, "13");
     });
 
     it("should handle error propagation in chains", () => {
