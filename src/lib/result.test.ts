@@ -272,6 +272,26 @@ describe("Result", () => {
         assert.isTrue(res.err);
         assert.equal(called, 5);
       });
+
+      it("should not re-attempt an Err if it has already been attempted", async () => {
+        let called = 0;
+
+        const res = await Result.attempt(
+          async () => {
+            called++;
+
+            const err = Result.err("error message");
+
+            err.attempted = true;
+
+            return err;
+          },
+          { timeout: 0, backoff: 0 }
+        );
+
+        assert.isTrue(res.err);
+        assert.equal(called, 1);
+      });
     });
   });
 

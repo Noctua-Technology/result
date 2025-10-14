@@ -70,6 +70,8 @@ export class Err<E> implements BaseResult<never, E> {
   readonly err: true = true;
   readonly val: E;
 
+  attempted?: undefined | boolean;
+
   #stack: string = "";
 
   [Symbol.iterator](): Iterator<never, never, any> {
@@ -266,6 +268,10 @@ export namespace Result {
 
     let res = await cb();
 
+    if (res.err && res.attempted === true) {
+      return res;
+    }
+
     while (res.err && count < attempts) {
       await wait(waitTime);
 
@@ -273,6 +279,10 @@ export namespace Result {
 
       count++;
       waitTime = timeout * Math.pow(1 + backoff, count); // update wait time
+    }
+
+    if (res.err) {
+      res.attempted = true;
     }
 
     return res;
