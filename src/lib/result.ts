@@ -68,6 +68,8 @@ export class Err<E> implements BaseResult<never, E> {
   readonly err: true = true;
   readonly val: E;
 
+  attempted?: undefined | boolean;
+
   #stack: string = "";
 
   [Symbol.iterator](): Iterator<never, never, any> {
@@ -190,19 +192,6 @@ export class Ok<T> implements BaseResult<T, never> {
     return this;
   }
 
-  /**
-   * Returns the contained `Ok` value, but never throws.
-   * Unlike `unwrap()`, this method doesn't throw and is only callable on an Ok<T>
-   *
-   * Therefore, it can be used instead of `unwrap()` as a maintainability safeguard
-   * that will fail to compile if the error type of the Result is later changed to an error that can actually occur.
-   *
-   * (this is the `into_ok()` in rust)
-   */
-  safeUnwrap(): T {
-    return this.val;
-  }
-
   toString(): string {
     return `Ok(${toString(this.val)})`;
   }
@@ -247,9 +236,42 @@ export namespace Result {
     }
   }
 
+  export async function attempt<T, E>(
+    cb: () => Promise<Result<T, E>>,
+    { attempts = 3, timeout = 1000, backoff = 0.5 } = {}
+  ) {
+    let count = 1;
+    let waitTime = timeout;
+
+    let res = await cb();
+
+    if (res.err && res.attempted === true) {
+      return res;
+    }
+
+    while (res.err && count < attempts) {
+      await wait(waitTime);
+
+      res = await cb();
+
+      count++;
+      waitTime = timeout * Math.pow(1 + backoff, count); // update wait time
+    }
+
+    if (res.err) {
+      res.attempted = true;
+    }
+
+    return res;
+  }
+
   export function isResult<T = any, E = any>(
     val: unknown
   ): val is Result<T, E> {
     return val instanceof Err || val instanceof Ok;
   }
+}
+
+function wait(time: number) {
+  return new Promise((resolve) => setTimeout(resolve, time));
 }
