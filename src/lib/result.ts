@@ -236,6 +236,12 @@ export namespace Result {
     }
   }
 
+  /**
+   * Wrap an async function that returns a result. Attempts to retry if the callback returns Err.
+   *
+   * @param cb
+   * @param param1
+   */
   export async function attempt<T, E>(
     cb: () => Promise<Result<T, E>>,
     { attempts = 3, timeout = 1000, backoff = 0.5 } = {}
