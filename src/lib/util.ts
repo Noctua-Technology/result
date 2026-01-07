@@ -7,3 +7,7 @@ export function toString(val: unknown): string {
   }
   return value;
 }
+
+export function wait(time: number) {
+  return new Promise((resolve) => setTimeout(resolve, time));
+}

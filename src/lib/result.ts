@@ -1,5 +1,5 @@
 // BASELINE CODE FORKED FROM https://github.com/deebloo/ts-results
-import { toString } from "./util.js";
+import { toString, wait } from "./util.js";
 
 interface BaseResult<T, E>
   extends Iterable<T extends Iterable<infer U> ? U : never> {
@@ -276,8 +276,4 @@ export namespace Result {
   ): val is Result<T, E> {
     return val instanceof Err || val instanceof Ok;
   }
-}
-
-function wait(time: number) {
-  return new Promise((resolve) => setTimeout(resolve, time));
 }
