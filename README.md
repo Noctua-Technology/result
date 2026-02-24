@@ -83,6 +83,15 @@ Get a safe fallback value.
 const timeoutMs = Result.err("missing config").unwrapOr(5000); // 5000
 ```
 
+You can also pass a function to compute a fallback from the error.
+
+```ts
+const timeoutMs = Result.err("missing config").unwrapOr((err) => {
+  console.warn(err);
+  return 5000;
+});
+```
+
 ## Wrapping throwing code
 
 ### `Result.wrap` for sync code
@@ -151,7 +160,7 @@ if (Result.isResult(maybe)) {
 - Constructors: `new Ok(value)`, `new Err(error)`
 - Helpers: `Result.ok(value)`, `Result.err(error)`
 - Transform: `map`, `andThen`, `mapErr`
-- Read values: `unwrap`, `unwrapOr`, `expect`, `expectErr`
+- Read values: `unwrap`, `unwrapOr` (value or function), `expect`, `expectErr`
 - Wrappers: `Result.wrap`, `Result.wrapAsync`
 - Retry: `Result.attempt`
 - Type guard: `Result.isResult`

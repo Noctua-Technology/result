@@ -25,14 +25,17 @@ describe("Result", () => {
       assert.strictEqual(result.unwrapOr("default"), "original");
     });
 
-    it("should not call unwrapOrElse when Ok", () => {
+    it("should not call unwrapOr when given a function on Ok", () => {
       const result = new Ok("value");
+      let called = false;
 
-      const output = result.unwrapOrElse(() => {
+      const output = result.unwrapOr(() => {
+        called = true;
         return "fallback";
       });
 
       assert.strictEqual(output, "value");
+      assert.strictEqual(called, false);
     });
 
     it("should return value from expect when Ok", () => {
@@ -135,14 +138,17 @@ describe("Result", () => {
       assert.strictEqual(result.unwrapOr("default"), "default");
     });
 
-    it("should call unwrapOrElse with error when Err", () => {
+    it("should call unwrapOr with error when Err", () => {
       const result = new Err("missing");
+      let seen: string | undefined;
 
-      const output = result.unwrapOrElse((err) => {
+      const output = result.unwrapOr((err) => {
+        seen = err;
         return "fallback";
       });
 
       assert.strictEqual(output, "fallback");
+      assert.strictEqual(seen, "missing");
     });
 
     it("should throw when expect is called on Err", () => {

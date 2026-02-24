@@ -33,14 +33,7 @@ interface BaseResult<T, E> extends Iterable<
    *
    *  (This is the `unwrap_or` in rust)
    */
-  unwrapOr<T2 extends T>(val: T2): T | T2;
-
-  /**
-   * Returns the contained `Ok` value or computes a default from the `Err` value.
-   *
-   * (This is the `unwrap_or_else` in rust)
-   */
-  unwrapOrElse<T2 extends T>(op: (err: E) => T2): T | T2;
+  unwrapOr<T2 extends T>(val: T2 | ((err: E) => T2)): T | T2;
 
   /**
    * Calls `mapper` if the result is `Ok`, otherwise returns the `Err` value of self.
@@ -107,12 +100,12 @@ export class Err<E> implements BaseResult<never, E> {
     this.#stack = stackLines.join("\n");
   }
 
-  unwrapOr<T2>(val: T2): T2 {
-    return val;
-  }
+  unwrapOr<T2>(val: T2 | ((err: E) => T2)): T2 {
+    if (typeof val === "function") {
+      return (val as (err: E) => T2)(this.val);
+    }
 
-  unwrapOrElse<T2>(op: (err: E) => T2): T2 {
-    return op(this.val);
+    return val;
   }
 
   expect(msg: string): never {
@@ -174,10 +167,6 @@ export class Ok<T> implements BaseResult<T, never> {
   }
 
   unwrapOr(_val: unknown): T {
-    return this.val;
-  }
-
-  unwrapOrElse(_op: (err: never) => unknown): T {
     return this.val;
   }
 
