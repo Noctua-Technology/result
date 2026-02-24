@@ -1,8 +1,9 @@
 // BASELINE CODE FORKED FROM https://github.com/deebloo/ts-results
 import { toString, wait } from "./util.js";
 
-interface BaseResult<T, E>
-  extends Iterable<T extends Iterable<infer U> ? U : never> {
+interface BaseResult<T, E> extends Iterable<
+  T extends Iterable<infer U> ? U : never
+> {
   /** `true` when the result is Ok */ readonly ok: boolean;
   /** `true` when the result is Err */ readonly err: boolean;
 
@@ -113,7 +114,7 @@ export class Err<E> implements BaseResult<never, E> {
 
   unwrap(): never {
     throw new Error(
-      `Tried to unwrap Error: ${toString(this.val)}\n${this.#stack}`
+      `Tried to unwrap Error: ${toString(this.val)}\n${this.#stack}`,
     );
   }
 
@@ -208,6 +209,13 @@ export namespace Result {
     return new Err(val);
   }
 
+  export function match<T, E, R>(
+    res: Result<T, E>,
+    handlers: { ok: (val: T) => R; err: (val: E) => R },
+  ): R {
+    return res.ok ? handlers.ok(res.val) : handlers.err(res.val);
+  }
+
   /**
    * Wrap an operation that may throw an Error (`try-catch` style) into checked exception style
    * @param op The operation function
@@ -225,7 +233,7 @@ export namespace Result {
    * @param op The operation function
    */
   export async function wrapAsync<T, E = unknown>(
-    op: () => Promise<T>
+    op: () => Promise<T>,
   ): Promise<Result<T, E>> {
     try {
       return op()
@@ -244,7 +252,7 @@ export namespace Result {
    */
   export async function attempt<T, E>(
     cb: () => Promise<Result<T, E>>,
-    { attempts = 3, timeout = 1000, backoff = 0.5 } = {}
+    { attempts = 3, timeout = 1000, backoff = 0.5 } = {},
   ) {
     let count = 1;
     let waitTime = timeout;
@@ -272,7 +280,7 @@ export namespace Result {
   }
 
   export function isResult<T = any, E = any>(
-    val: unknown
+    val: unknown,
   ): val is Result<T, E> {
     return val instanceof Err || val instanceof Ok;
   }

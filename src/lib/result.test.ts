@@ -236,6 +236,29 @@ describe("Result", () => {
       });
     });
 
+    describe("match", () => {
+      it("should call ok handler for Ok", () => {
+        const result = Result.ok(10);
+
+        const message = Result.match(result, {
+          ok: (val) => `ok:${val}`,
+          err: (err) => `err:${err}`,
+        });
+
+        assert.strictEqual(message, "ok:10");
+      });
+
+      it("should call err handler for Err", () => {
+        const result = Result.err("boom");
+        const message = Result.match(result, {
+          ok: (val) => `ok:${val}`,
+          err: (err) => `err:${err}`,
+        });
+
+        assert.strictEqual(message, "err:boom");
+      });
+    });
+
     describe("attempt", () => {
       it("should attempt the call a default of 3 times", async () => {
         let called = 0;
@@ -244,7 +267,7 @@ describe("Result", () => {
             called++;
             return Result.err("error message");
           },
-          { timeout: 0, backoff: 0 }
+          { timeout: 0, backoff: 0 },
         );
 
         assert.strictEqual(res.err, true);
@@ -259,7 +282,7 @@ describe("Result", () => {
             called++;
             return Result.err("error message");
           },
-          { attempts: 5, timeout: 0, backoff: 0 }
+          { attempts: 5, timeout: 0, backoff: 0 },
         );
 
         assert.strictEqual(res.err, true);
@@ -279,7 +302,7 @@ describe("Result", () => {
 
             return err;
           },
-          { timeout: 0, backoff: 0 }
+          { timeout: 0, backoff: 0 },
         );
 
         assert.strictEqual(res.err, true);
@@ -332,7 +355,7 @@ describe("Result", () => {
       assert.deepStrictEqual(result.unwrap(), complexObj);
       assert.strictEqual(
         result.toString(),
-        `Ok({"id":1,"name":"test","data":[1,2,3]})`
+        `Ok({"id":1,"name":"test","data":[1,2,3]})`,
       );
     });
   });
