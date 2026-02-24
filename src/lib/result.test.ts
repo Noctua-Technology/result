@@ -99,6 +99,17 @@ describe("Result", () => {
       assert.throws(() => result.unwrap());
     });
 
+    it("should include error value in unwrap message", () => {
+      const result = new Err("explode");
+
+      assert.throws(
+        () => result.unwrap(),
+        (err) =>
+          err instanceof Error &&
+          err.message.includes("Tried to unwrap Error: explode"),
+      );
+    });
+
     it("should return default value from unwrapOr when Err", () => {
       const result = new Err("error");
 
@@ -109,6 +120,16 @@ describe("Result", () => {
       const result = new Err("test error");
 
       assert.throws(() => result.expect("custom message"));
+    });
+
+    it("should include custom message in expect error", () => {
+      const result = new Err("boom");
+
+      assert.throws(
+        () => result.expect("failed"),
+        (err) =>
+          err instanceof Error && err.message.includes("failed - Error: boom"),
+      );
     });
 
     it("should return error value from expectErr when Err", () => {
