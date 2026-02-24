@@ -1,8 +1,9 @@
 // BASELINE CODE FORKED FROM https://github.com/deebloo/ts-results
 import { toString, wait } from "./util.js";
 
-interface BaseResult<T, E>
-  extends Iterable<T extends Iterable<infer U> ? U : never> {
+interface BaseResult<T, E> extends Iterable<
+  T extends Iterable<infer U> ? U : never
+> {
   /** `true` when the result is Ok */ readonly ok: boolean;
   /** `true` when the result is Err */ readonly err: boolean;
 
@@ -33,6 +34,13 @@ interface BaseResult<T, E>
    *  (This is the `unwrap_or` in rust)
    */
   unwrapOr<T2 extends T>(val: T2): T | T2;
+
+  /**
+   * Returns the contained `Ok` value or computes a default from the `Err` value.
+   *
+   * (This is the `unwrap_or_else` in rust)
+   */
+  unwrapOrElse<T2 extends T>(op: (err: E) => T2): T | T2;
 
   /**
    * Calls `mapper` if the result is `Ok`, otherwise returns the `Err` value of self.
@@ -103,6 +111,10 @@ export class Err<E> implements BaseResult<never, E> {
     return val;
   }
 
+  unwrapOrElse<T2>(op: (err: E) => T2): T2 {
+    return op(this.val);
+  }
+
   expect(msg: string): never {
     throw new Error(`${msg} - Error: ${toString(this.val)}\n${this.#stack}`);
   }
@@ -113,7 +125,7 @@ export class Err<E> implements BaseResult<never, E> {
 
   unwrap(): never {
     throw new Error(
-      `Tried to unwrap Error: ${toString(this.val)}\n${this.#stack}`
+      `Tried to unwrap Error: ${toString(this.val)}\n${this.#stack}`,
     );
   }
 
@@ -162,6 +174,10 @@ export class Ok<T> implements BaseResult<T, never> {
   }
 
   unwrapOr(_val: unknown): T {
+    return this.val;
+  }
+
+  unwrapOrElse(_op: (err: never) => unknown): T {
     return this.val;
   }
 
@@ -225,7 +241,7 @@ export namespace Result {
    * @param op The operation function
    */
   export async function wrapAsync<T, E = unknown>(
-    op: () => Promise<T>
+    op: () => Promise<T>,
   ): Promise<Result<T, E>> {
     try {
       return op()
@@ -244,7 +260,7 @@ export namespace Result {
    */
   export async function attempt<T, E>(
     cb: () => Promise<Result<T, E>>,
-    { attempts = 3, timeout = 1000, backoff = 0.5 } = {}
+    { attempts = 3, timeout = 1000, backoff = 0.5 } = {},
   ) {
     let count = 1;
     let waitTime = timeout;
@@ -272,7 +288,7 @@ export namespace Result {
   }
 
   export function isResult<T = any, E = any>(
-    val: unknown
+    val: unknown,
   ): val is Result<T, E> {
     return val instanceof Err || val instanceof Ok;
   }

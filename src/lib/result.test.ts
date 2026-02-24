@@ -25,6 +25,16 @@ describe("Result", () => {
       assert.strictEqual(result.unwrapOr("default"), "original");
     });
 
+    it("should not call unwrapOrElse when Ok", () => {
+      const result = new Ok("value");
+
+      const output = result.unwrapOrElse(() => {
+        return "fallback";
+      });
+
+      assert.strictEqual(output, "value");
+    });
+
     it("should return value from expect when Ok", () => {
       const result = new Ok("test");
 
@@ -37,6 +47,15 @@ describe("Result", () => {
       assert.throws(() => result.expectErr("should throw"), {
         message: "should throw",
       });
+    });
+
+    it("should include custom message in expectErr error", () => {
+      const result = new Ok("ok");
+
+      assert.throws(
+        () => result.expectErr("expected error"),
+        (err) => err instanceof Error && err.message.includes("expected error"),
+      );
     });
 
     it("should map Ok value correctly", () => {
@@ -116,6 +135,16 @@ describe("Result", () => {
       assert.strictEqual(result.unwrapOr("default"), "default");
     });
 
+    it("should call unwrapOrElse with error when Err", () => {
+      const result = new Err("missing");
+
+      const output = result.unwrapOrElse((err) => {
+        return "fallback";
+      });
+
+      assert.strictEqual(output, "fallback");
+    });
+
     it("should throw when expect is called on Err", () => {
       const result = new Err("test error");
 
@@ -136,6 +165,12 @@ describe("Result", () => {
       const result = new Err("test error");
 
       assert.strictEqual(result.expectErr("should not throw"), "test error");
+    });
+
+    it("should ignore message when expectErr is called on Err", () => {
+      const result = new Err("original");
+
+      assert.strictEqual(result.expectErr("ignored"), "original");
     });
 
     it("should return Err when map is called on Err", () => {
