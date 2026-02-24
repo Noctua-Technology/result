@@ -244,7 +244,7 @@ describe("Result", () => {
             called++;
             return Result.err("error message");
           },
-          { timeout: 0, backoff: 0 }
+          { timeout: 0, backoff: 0 },
         );
 
         assert.strictEqual(res.err, true);
@@ -259,11 +259,46 @@ describe("Result", () => {
             called++;
             return Result.err("error message");
           },
-          { attempts: 5, timeout: 0, backoff: 0 }
+          { attempts: 5, timeout: 0, backoff: 0 },
         );
 
         assert.strictEqual(res.err, true);
         assert.strictEqual(called, 5);
+      });
+
+      it("should stop retrying after a successful result", async () => {
+        let called = 0;
+
+        const res = await Result.attempt(
+          async () => {
+            called++;
+            if (called < 3) {
+              return Result.err("temporary error");
+            }
+
+            return Result.ok("done");
+          },
+          { attempts: 5, timeout: 0, backoff: 0 },
+        );
+
+        assert.strictEqual(res.ok, true);
+        assert.strictEqual(res.val, "done");
+        assert.strictEqual(called, 3);
+      });
+
+      it("should mark attempted when retries are exhausted", async () => {
+        let called = 0;
+        const res = await Result.attempt(
+          async () => {
+            called++;
+            return Result.err("still failing");
+          },
+          { attempts: 2, timeout: 0, backoff: 0 },
+        );
+
+        assert.strictEqual(res.err, true);
+        assert.strictEqual(res.attempted, true);
+        assert.strictEqual(called, 2);
       });
 
       it("should not re-attempt an Err if it has already been attempted", async () => {
@@ -279,7 +314,7 @@ describe("Result", () => {
 
             return err;
           },
-          { timeout: 0, backoff: 0 }
+          { timeout: 0, backoff: 0 },
         );
 
         assert.strictEqual(res.err, true);
@@ -332,7 +367,7 @@ describe("Result", () => {
       assert.deepStrictEqual(result.unwrap(), complexObj);
       assert.strictEqual(
         result.toString(),
-        `Ok({"id":1,"name":"test","data":[1,2,3]})`
+        `Ok({"id":1,"name":"test","data":[1,2,3]})`,
       );
     });
   });
