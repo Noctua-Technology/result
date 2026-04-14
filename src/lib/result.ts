@@ -89,11 +89,7 @@ export class Err<E> implements BaseResult<never, E> {
     this.val = val;
 
     const stackLines = new Error().stack!.split("\n").slice(2);
-    if (
-      stackLines &&
-      stackLines.length > 0 &&
-      stackLines[0].includes("ErrImpl")
-    ) {
+    if (stackLines.length > 0 && stackLines[0]?.includes("ErrImpl")) {
       stackLines.shift();
     }
 
@@ -280,5 +276,29 @@ export namespace Result {
     val: unknown,
   ): val is Result<T, E> {
     return val instanceof Err || val instanceof Ok;
+  }
+
+  /**
+   * Takes an array (or tuple) of Results and returns an `Ok` containing all
+   * success values in the same shape, or the first `Err` encountered.
+   */
+  export function all<T extends readonly Result<unknown, unknown>[]>(
+    results: [...T],
+  ): Result<
+    { [K in keyof T]: T[K] extends Result<infer U, any> ? U : never },
+    { [K in keyof T]: T[K] extends Result<any, infer F> ? F : never }[number]
+  >;
+  export function all<T, E>(results: Result<T, E>[]): Result<T[], E>;
+  export function all(
+    results: Result<unknown, unknown>[],
+  ): Result<unknown[], unknown> {
+    const values: unknown[] = [];
+    for (const result of results) {
+      if (result.err) {
+        return result;
+      }
+      values.push(result.val);
+    }
+    return new Ok(values);
   }
 }

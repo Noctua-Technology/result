@@ -385,6 +385,45 @@ describe("Result", () => {
     });
   });
 
+  describe("Result.all", () => {
+    it("should return Ok with all values when all results are Ok", () => {
+      const result = Result.all([new Ok(1), new Ok(2), new Ok(3)]);
+
+      assert.ok(result instanceof Ok);
+      assert.deepStrictEqual(result.val, [1, 2, 3]);
+    });
+
+    it("should return the first Err when any result is Err", () => {
+      const result = Result.all([new Ok(1), new Err("boom"), new Ok(3)]);
+
+      assert.ok(result instanceof Err);
+      assert.strictEqual(result.val, "boom");
+    });
+
+    it("should return the first Err and not continue evaluating", () => {
+      const result = Result.all([new Err("first"), new Err("second")]);
+
+      assert.ok(result instanceof Err);
+      assert.strictEqual(result.val, "first");
+    });
+
+    it("should return Ok with an empty array for an empty input", () => {
+      const result = Result.all([]);
+
+      assert.ok(result instanceof Ok);
+      assert.deepStrictEqual(result.val, []);
+    });
+
+    it("should preserve tuple types", () => {
+      const a = new Ok(42) as Result<number, string>;
+      const b = new Ok("hello") as Result<string, string>;
+      const result = Result.all([a, b]);
+
+      assert.ok(result instanceof Ok);
+      assert.deepStrictEqual(result.val, [42, "hello"]);
+    });
+  });
+
   describe("Complex scenarios", () => {
     it("should handle chaining multiple operations", () => {
       const result = new Ok(5)

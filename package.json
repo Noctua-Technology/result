@@ -25,7 +25,7 @@
       ]
     },
     "test": {
-      "command": "node --test \"./target/**/*.test.js\"",
+      "command": "node --enable-source-maps --test \"./target/**/*.test.js\"",
       "dependencies": [
         "build"
       ]
@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.4",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.0",
     "wireit": "^0.14.12"
   }
 }
