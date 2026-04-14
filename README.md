@@ -43,7 +43,7 @@ const a: Result<number, string> = Result.ok(42);
 const b: Result<number, string> = Result.err("boom");
 ```
 
-## Most useful operations
+## Operations
 
 ### `map`
 Transform success values only.
