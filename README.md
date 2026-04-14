@@ -145,6 +145,23 @@ Notes:
 - `backoff` increases wait time after each retry
 - final failed result is marked with `attempted = true`
 
+## Collecting multiple results
+
+Use `Result.all` to combine an array (or tuple) of Results into a single Result. It returns `Ok` with all values if every result succeeded, or the first `Err` it encounters.
+
+```ts
+const results = Result.all([
+  Result.wrap(() => JSON.parse('{"port":3000}')),
+  Result.wrap(() => JSON.parse('{"host":"localhost"}')),
+]);
+
+if (results.ok) {
+  const [portConfig, hostConfig] = results.val;
+}
+```
+
+Tuple types are fully preserved, so each element's type is inferred independently.
+
 ## Runtime checks
 
 ```ts
@@ -163,6 +180,7 @@ if (Result.isResult(maybe)) {
 - Read values: `unwrap`, `unwrapOr` (value or function), `expect`, `expectErr`
 - Wrappers: `Result.wrap`, `Result.wrapAsync`
 - Retry: `Result.attempt`
+- Collect: `Result.all`
 - Type guard: `Result.isResult`
 
 ## Development
