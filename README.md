@@ -37,10 +37,10 @@ A result is always one of these two shapes:
 - `Err<E>`: error value
 
 ```ts
-import { Ok, Err, type Result } from "@noctuatech/result";
+import { Result } from "@noctuatech/result";
 
-const a: Result<number, string> = new Ok(42);
-const b: Result<number, string> = new Err("boom");
+const a: Result<number, string> = Result.ok(42);
+const b: Result<number, string> = Result.err("boom");
 ```
 
 ## Most useful operations
