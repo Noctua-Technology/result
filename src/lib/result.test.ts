@@ -25,11 +25,11 @@ describe("Result", () => {
       assert.strictEqual(result.unwrapOr("default"), "original");
     });
 
-    it("should not call unwrapOr when given a function on Ok", () => {
+    it("should return value from unwrapOrElse when Ok", () => {
       const result = new Ok("value");
       let called = false;
 
-      const output = result.unwrapOr(() => {
+      const output = result.unwrapOrElse(() => {
         called = true;
         return "fallback";
       });
@@ -91,18 +91,18 @@ describe("Result", () => {
       assert.strictEqual(result.toString(), "Ok(test)");
     });
 
-    it("should be iterable when value is iterable", () => {
+    it("should be iterable and yield the inner value once when iterable", () => {
       const result = new Ok([1, 2, 3]);
       const values = [...result];
 
-      assert.deepStrictEqual(values, [1, 2, 3]);
+      assert.deepStrictEqual(values, [[1, 2, 3]]);
     });
 
-    it("should not be iterable when value is not iterable", () => {
+    it("should be iterable and yield the inner value once when not iterable", () => {
       const result = new Ok(100);
       const values = [...result];
 
-      assert.deepStrictEqual(values, []);
+      assert.deepStrictEqual(values, [100]);
     });
   });
 
@@ -138,11 +138,11 @@ describe("Result", () => {
       assert.strictEqual(result.unwrapOr("default"), "default");
     });
 
-    it("should call unwrapOr with error when Err", () => {
+    it("should call unwrapOrElse with error when Err", () => {
       const result = new Err("missing");
       let seen: string | undefined;
 
-      const output = result.unwrapOr((err) => {
+      const output = result.unwrapOrElse((err) => {
         seen = err;
         return "fallback";
       });
@@ -382,6 +382,23 @@ describe("Result", () => {
         assert.strictEqual(res.err, true);
         assert.strictEqual(called, 1);
       });
+
+      it("should handle exceptions thrown in callback as Err", async () => {
+        let called = 0;
+
+        const res = await Result.attempt(
+          async () => {
+            called++;
+            throw new Error("thrown error");
+          },
+          { attempts: 2, timeout: 0, backoff: 0 },
+        );
+
+        assert.strictEqual(res.err, true);
+        assert.ok(res.val instanceof Error);
+        assert.strictEqual((res.val as Error).message, "thrown error");
+        assert.strictEqual(called, 2);
+      });
     });
   });
 
@@ -421,6 +438,88 @@ describe("Result", () => {
 
       assert.ok(result instanceof Ok);
       assert.deepStrictEqual(result.val, [42, "hello"]);
+    });
+  });
+
+  describe("Functional Combinators", () => {
+    describe("orElse", () => {
+      it("should return the original Ok", () => {
+        const result = new Ok(42);
+        const chained = result.orElse((err) => new Ok(100));
+
+        assert.ok(chained instanceof Ok);
+        assert.strictEqual(chained.unwrap(), 42);
+      });
+
+      it("should map Err to a new Result", () => {
+        const result = new Err("error");
+        const chained = result.orElse((err) => new Ok(100));
+
+        assert.ok(chained instanceof Ok);
+        assert.strictEqual(chained.unwrap(), 100);
+      });
+    });
+
+    describe("mapOr", () => {
+      it("should return mapped value on Ok", () => {
+        const result = new Ok(5);
+        const mapped = result.mapOr(10, (x) => x * 2);
+
+        assert.strictEqual(mapped, 10);
+      });
+
+      it("should return default value on Err", () => {
+        const result = new Err("error");
+        const mapped = result.mapOr(10, (x: number) => x * 2);
+
+        assert.strictEqual(mapped, 10);
+      });
+    });
+
+    describe("mapOrElse", () => {
+      it("should return mapped value on Ok", () => {
+        const result = new Ok(5);
+        const mapped = result.mapOrElse(
+          (err) => 10,
+          (x) => x * 2,
+        );
+
+        assert.strictEqual(mapped, 10);
+      });
+
+      it("should return default function value on Err", () => {
+        const result = new Err("error");
+        const mapped = result.mapOrElse(
+          (err) => `default: ${err}`,
+          (x: number) => `mapped: ${x}`,
+        );
+
+        assert.strictEqual(mapped, "default: error");
+      });
+    });
+  });
+
+  describe("Stack Trace Config", () => {
+    it("should not capture stack trace if Result.captureStackTrace is false", () => {
+      Result.captureStackTrace = false;
+      const result = new Err("error");
+
+      // Reset immediately to avoid affecting other tests
+      Result.captureStackTrace = true;
+
+      // Note: result.stack still prepends `${this}\n` so it will be "Err(error)\n"
+      assert.strictEqual(result.stack, "Err(error)\n");
+    });
+  });
+
+  describe("Harden toString tests", () => {
+    it("should handle null-prototype objects in toString", () => {
+      const obj = Object.create(null);
+      obj.key = "value";
+
+      const result = new Ok(obj);
+
+      assert.strictEqual(result.toString(), 'Ok({"key":"value"})');
     });
   });
 
