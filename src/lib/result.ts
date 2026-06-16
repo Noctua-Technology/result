@@ -1,9 +1,7 @@
 // BASELINE CODE FORKED FROM https://github.com/deebloo/ts-results
 import { toString, wait } from "./util.js";
 
-interface BaseResult<T, E> extends Iterable<
-  T extends Iterable<infer U> ? U : never
-> {
+interface BaseResult<T, E> extends Iterable<T> {
   /** `true` when the result is Ok */ readonly ok: boolean;
   /** `true` when the result is Err */ readonly err: boolean;
 
@@ -33,7 +31,12 @@ interface BaseResult<T, E> extends Iterable<
    *
    *  (This is the `unwrap_or` in rust)
    */
-  unwrapOr<T2 extends T>(val: T2 | ((err: E) => T2)): T | T2;
+  unwrapOr<T2 extends T>(val: T2): T | T2;
+
+  /**
+   * Returns the contained `Ok` value or computes it from a closure.
+   */
+  unwrapOrElse<T2 extends T>(fn: (err: E) => T2): T | T2;
 
   /**
    * Calls `mapper` if the result is `Ok`, otherwise returns the `Err` value of self.
@@ -41,7 +44,6 @@ interface BaseResult<T, E> extends Iterable<
    */
   andThen<T2>(mapper: (val: T) => Ok<T2>): Result<T2, E>;
   andThen<E2>(mapper: (val: T) => Err<E2>): Result<T, E | E2>;
-  andThen<T2, E2>(mapper: (val: T) => Result<T2, E2>): Result<T2, E | E2>;
   andThen<T2, E2>(mapper: (val: T) => Result<T2, E2>): Result<T2, E | E2>;
 
   /**
@@ -59,6 +61,22 @@ interface BaseResult<T, E> extends Iterable<
    * This function can be used to pass through a successful result while handling an error.
    */
   mapErr<F>(mapper: (val: E) => F): Result<T, F>;
+
+  /**
+   * Calls `mapper` if the result is `Err`, otherwise returns the `Ok` value of self.
+   */
+  orElse<F>(mapper: (err: E) => Result<T, F>): Result<T, F>;
+
+  /**
+   * Returns the default value if `Err`, or applies the mapper function to the contained `Ok` value.
+   */
+  mapOr<U>(defaultVal: U, mapper: (val: T) => U): U;
+
+  /**
+   * Maps a `Result<T, E>` to `U` by applying `defaultFn` to a contained `Err` value,
+   * or `mapper` to a contained `Ok` value.
+   */
+  mapOrElse<U>(defaultFn: (err: E) => U, mapper: (val: T) => U): U;
 }
 
 /**
@@ -73,12 +91,8 @@ export class Err<E> implements BaseResult<never, E> {
 
   #stack: string = "";
 
-  [Symbol.iterator](): Iterator<never, never, any> {
-    return {
-      next(): IteratorResult<never, never> {
-        return { done: true, value: undefined! };
-      },
-    };
+  *[Symbol.iterator](): Generator<never, void, unknown> {
+    // Err contains 0 elements
   }
 
   get stack(): string | undefined {
@@ -88,20 +102,28 @@ export class Err<E> implements BaseResult<never, E> {
   constructor(val: E) {
     this.val = val;
 
-    const stackLines = new Error().stack!.split("\n").slice(2);
-    if (stackLines.length > 0 && stackLines[0]?.includes("ErrImpl")) {
-      stackLines.shift();
+    if (Result.captureStackTrace) {
+      try {
+        const rawStack = new Error().stack;
+        if (rawStack) {
+          const stackLines = rawStack.split("\n").slice(2);
+          if (stackLines.length > 0 && stackLines[0]?.includes("ErrImpl")) {
+            stackLines.shift();
+          }
+          this.#stack = stackLines.join("\n");
+        }
+      } catch {
+        this.#stack = "";
+      }
     }
-
-    this.#stack = stackLines.join("\n");
   }
 
-  unwrapOr<T2>(val: T2 | ((err: E) => T2)): T2 {
-    if (typeof val === "function") {
-      return (val as (err: E) => T2)(this.val);
-    }
-
+  unwrapOr<T2>(val: T2): T2 {
     return val;
+  }
+
+  unwrapOrElse<T2>(fn: (err: E) => T2): T2 {
+    return fn(this.val);
   }
 
   expect(msg: string): never {
@@ -130,6 +152,18 @@ export class Err<E> implements BaseResult<never, E> {
     return new Err(mapper(this.val));
   }
 
+  orElse<T2, F>(mapper: (err: E) => Result<T2, F>): Result<T2, F> {
+    return mapper(this.val);
+  }
+
+  mapOr<U>(defaultVal: U, _mapper: (val: never) => U): U {
+    return defaultVal;
+  }
+
+  mapOrElse<U>(defaultFn: (err: E) => U, _mapper: (val: never) => U): U {
+    return defaultFn(this.val);
+  }
+
   toString(): string {
     return `Err(${toString(this.val)})`;
   }
@@ -143,19 +177,8 @@ export class Ok<T> implements BaseResult<T, never> {
   readonly err: false = false;
   readonly val: T;
 
-  /**
-   * Helper function if you know you have an Ok<T> and T is iterable
-   */
-  [Symbol.iterator](): Iterator<T extends Iterable<infer U> ? U : never> {
-    const obj = Object(this.val) as Iterable<any>;
-
-    return Symbol.iterator in obj
-      ? obj[Symbol.iterator]()
-      : {
-          next(): IteratorResult<never, never> {
-            return { done: true, value: undefined! };
-          },
-        };
+  *[Symbol.iterator](): Generator<T, void, unknown> {
+    yield this.val;
   }
 
   constructor(val: T) {
@@ -163,6 +186,10 @@ export class Ok<T> implements BaseResult<T, never> {
   }
 
   unwrapOr(_val: unknown): T {
+    return this.val;
+  }
+
+  unwrapOrElse(_fn: (err: never) => unknown): T {
     return this.val;
   }
 
@@ -193,6 +220,18 @@ export class Ok<T> implements BaseResult<T, never> {
     return this;
   }
 
+  orElse<F>(_mapper: (err: never) => Result<T, F>): Ok<T> {
+    return this;
+  }
+
+  mapOr<U>(_defaultVal: U, mapper: (val: T) => U): U {
+    return mapper(this.val);
+  }
+
+  mapOrElse<U>(_defaultFn: (err: never) => U, mapper: (val: T) => U): U {
+    return mapper(this.val);
+  }
+
   toString(): string {
     return `Ok(${toString(this.val)})`;
   }
@@ -201,6 +240,8 @@ export class Ok<T> implements BaseResult<T, never> {
 export type Result<T, E> = Ok<T> | Err<E>;
 
 export namespace Result {
+  export let captureStackTrace = true;
+
   export function ok<T>(val: T): Ok<T> {
     return new Ok(val);
   }
@@ -226,14 +267,13 @@ export namespace Result {
    * @param op The operation function
    */
   export async function wrapAsync<T, E = unknown>(
-    op: () => Promise<T>,
+    op: () => Promise<T> | T,
   ): Promise<Result<T, E>> {
     try {
-      return op()
-        .then((val) => new Ok(val))
-        .catch((e) => new Err(e));
+      const val = await op();
+      return new Ok(val);
     } catch (e) {
-      return new Err(e as E);
+      return new Err<E>(e as E);
     }
   }
 
@@ -250,7 +290,13 @@ export namespace Result {
     let count = 1;
     let waitTime = timeout;
 
-    let res = await cb();
+    let res: Result<T, E>;
+
+    try {
+      res = await cb();
+    } catch (e) {
+      res = new Err<E>(e as E);
+    }
 
     if (res.err && res.attempted === true) {
       return res;
@@ -259,7 +305,11 @@ export namespace Result {
     while (res.err && count < attempts) {
       await wait(waitTime);
 
-      res = await cb();
+      try {
+        res = await cb();
+      } catch (e) {
+        res = new Err<E>(e as E);
+      }
 
       count++;
       waitTime = timeout * Math.pow(1 + backoff, count); // update wait time
