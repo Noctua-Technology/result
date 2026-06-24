@@ -17,9 +17,7 @@ import { Result } from "@noctuatech/result";
 
 function parsePort(input: string) {
   const value = Number(input);
-  return Number.isInteger(value) && value > 0
-    ? Result.ok(value)
-    : Result.err("Invalid port");
+  return Number.isInteger(value) && value > 0 ? Result.ok(value) : Result.err("Invalid port");
 }
 
 const port = parsePort("3000")
@@ -46,6 +44,7 @@ const b: Result<number, string> = Result.err("boom");
 ## Operations
 
 ### `map`
+
 Transform success values only.
 
 ```ts
@@ -53,6 +52,7 @@ const r = Result.ok(10).map((n) => n * 2); // Ok(20)
 ```
 
 ### `andThen`
+
 Chain operations that each return a result.
 
 ```ts
@@ -69,6 +69,7 @@ const res = toNumber("12").andThen(positive); // Ok(12)
 ```
 
 ### `mapErr`
+
 Transform error values only.
 
 ```ts
@@ -77,6 +78,7 @@ const res = Result.err("timeout").mapErr((e) => `Network error: ${e}`);
 ```
 
 ### `unwrapOr`
+
 Get a safe fallback value.
 
 ```ts
@@ -132,7 +134,7 @@ const result = await Result.attempt(
     attempts: 5,
     timeout: 200,
     backoff: 0.5,
-  }
+  },
 );
 
 console.log(result.toString()); // Ok(done)

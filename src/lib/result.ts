@@ -1,7 +1,11 @@
 // BASELINE CODE FORKED FROM https://github.com/deebloo/ts-results
 import { toString, wait } from "./util.js";
 
+export const RESULT_BRAND = Symbol.for("noctuatech.result");
+
 interface BaseResult<T, E> extends Iterable<T> {
+  readonly [RESULT_BRAND]: boolean;
+
   /** `true` when the result is Ok */ readonly ok: boolean;
   /** `true` when the result is Err */ readonly err: boolean;
 
@@ -77,12 +81,31 @@ interface BaseResult<T, E> extends Iterable<T> {
    * or `mapper` to a contained `Ok` value.
    */
   mapOrElse<U>(defaultFn: (err: E) => U, mapper: (val: T) => U): U;
+
+  /**
+   * Maps a `Result<T, E>` to `Promise<Result<U, E>>` by applying an async function to a contained `Ok` value,
+   * leaving an `Err` value untouched.
+   */
+  mapAsync<U>(mapper: (val: T) => Promise<U>): Promise<Result<U, E>>;
+
+  /**
+   * Calls `mapper` asynchronously if the result is `Ok`, otherwise returns the `Err` value of self.
+   */
+  andThenAsync<T2>(mapper: (val: T) => Promise<Ok<T2>>): Promise<Result<T2, E>>;
+  andThenAsync<E2>(mapper: (val: T) => Promise<Err<E2>>): Promise<Result<T, E | E2>>;
+  andThenAsync<T2, E2>(mapper: (val: T) => Promise<Result<T2, E2>>): Promise<Result<T2, E | E2>>;
+
+  /**
+   * Shallow clones the result, preserving any existing stack traces for errors.
+   */
+  clone(): Result<T, E>;
 }
 
 /**
  * Contains the error value
  */
 export class Err<E> implements BaseResult<never, E> {
+  readonly [RESULT_BRAND] = true;
   readonly ok: false = false;
   readonly err: true = true;
   readonly val: E;
@@ -107,9 +130,6 @@ export class Err<E> implements BaseResult<never, E> {
         const rawStack = new Error().stack;
         if (rawStack) {
           const stackLines = rawStack.split("\n").slice(2);
-          if (stackLines.length > 0 && stackLines[0]?.includes("ErrImpl")) {
-            stackLines.shift();
-          }
           this.#stack = stackLines.join("\n");
         }
       } catch {
@@ -135,16 +155,22 @@ export class Err<E> implements BaseResult<never, E> {
   }
 
   unwrap(): never {
-    throw new Error(
-      `Tried to unwrap Error: ${toString(this.val)}\n${this.#stack}`,
-    );
+    throw new Error(`Tried to unwrap Error: ${toString(this.val)}\n${this.#stack}`);
   }
 
   map(_mapper: unknown): Err<E> {
     return this;
   }
 
+  async mapAsync(_mapper: unknown): Promise<Err<E>> {
+    return this;
+  }
+
   andThen(op: unknown): Err<E> {
+    return this;
+  }
+
+  async andThenAsync(op: unknown): Promise<Err<E>> {
     return this;
   }
 
@@ -164,6 +190,15 @@ export class Err<E> implements BaseResult<never, E> {
     return defaultFn(this.val);
   }
 
+  clone(): Err<E> {
+    const copy = new Err(this.val);
+    copy.#stack = this.#stack;
+    if (this.attempted !== undefined) {
+      copy.attempted = this.attempted;
+    }
+    return copy;
+  }
+
   toString(): string {
     return `Err(${toString(this.val)})`;
   }
@@ -173,6 +208,7 @@ export class Err<E> implements BaseResult<never, E> {
  * Contains the success value
  */
 export class Ok<T> implements BaseResult<T, never> {
+  readonly [RESULT_BRAND] = true;
   readonly ok: true = true;
   readonly err: false = false;
   readonly val: T;
@@ -209,10 +245,21 @@ export class Ok<T> implements BaseResult<T, never> {
     return new Ok(mapper(this.val));
   }
 
+  mapAsync<U>(mapper: (val: T) => Promise<U>): Promise<Ok<U>> {
+    return mapper(this.val).then((val) => new Ok(val));
+  }
+
   andThen<T2>(mapper: (val: T) => Ok<T2>): Ok<T2>;
   andThen<E2>(mapper: (val: T) => Err<E2>): Result<T, E2>;
   andThen<T2, E2>(mapper: (val: T) => Result<T2, E2>): Result<T2, E2>;
   andThen<T2, E2>(mapper: (val: T) => Result<T2, E2>): Result<T2, E2> {
+    return mapper(this.val);
+  }
+
+  async andThenAsync<T2>(mapper: (val: T) => Promise<Ok<T2>>): Promise<Ok<T2>>;
+  async andThenAsync<E2>(mapper: (val: T) => Promise<Err<E2>>): Promise<Result<T, E2>>;
+  async andThenAsync<T2, E2>(mapper: (val: T) => Promise<Result<T2, E2>>): Promise<Result<T2, E2>>;
+  async andThenAsync<T2, E2>(mapper: (val: T) => Promise<Result<T2, E2>>): Promise<Result<T2, E2>> {
     return mapper(this.val);
   }
 
@@ -230,6 +277,10 @@ export class Ok<T> implements BaseResult<T, never> {
 
   mapOrElse<U>(_defaultFn: (err: never) => U, mapper: (val: T) => U): U {
     return mapper(this.val);
+  }
+
+  clone(): Ok<T> {
+    return new Ok(this.val);
   }
 
   toString(): string {
@@ -266,9 +317,7 @@ export namespace Result {
    * Wrap an async operation that may throw an Error (`try-catch` style) into checked exception style
    * @param op The operation function
    */
-  export async function wrapAsync<T, E = unknown>(
-    op: () => Promise<T> | T,
-  ): Promise<Result<T, E>> {
+  export async function wrapAsync<T, E = unknown>(op: () => Promise<T> | T): Promise<Result<T, E>> {
     try {
       const val = await op();
       return new Ok(val);
@@ -316,16 +365,17 @@ export namespace Result {
     }
 
     if (res.err) {
-      res.attempted = true;
+      const finalErr = res.clone();
+      finalErr.attempted = true;
+
+      return finalErr;
     }
 
     return res;
   }
 
-  export function isResult<T = any, E = any>(
-    val: unknown,
-  ): val is Result<T, E> {
-    return val instanceof Err || val instanceof Ok;
+  export function isResult<T = any, E = any>(val: unknown): val is Result<T, E> {
+    return typeof val === "object" && val !== null && RESULT_BRAND in val;
   }
 
   /**
@@ -339,14 +389,14 @@ export namespace Result {
     { [K in keyof T]: T[K] extends Result<any, infer F> ? F : never }[number]
   >;
   export function all<T, E>(results: Result<T, E>[]): Result<T[], E>;
-  export function all(
-    results: Result<unknown, unknown>[],
-  ): Result<unknown[], unknown> {
+  export function all(results: Result<unknown, unknown>[]): Result<unknown[], unknown> {
     const values: unknown[] = [];
+
     for (const result of results) {
       if (result.err) {
         return result;
       }
+
       values.push(result.val);
     }
     return new Ok(values);

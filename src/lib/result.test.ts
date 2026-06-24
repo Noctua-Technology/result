@@ -126,9 +126,7 @@ describe("Result", () => {
 
       assert.throws(
         () => result.unwrap(),
-        (err) =>
-          err instanceof Error &&
-          err.message.includes("Tried to unwrap Error: explode"),
+        (err) => err instanceof Error && err.message.includes("Tried to unwrap Error: explode"),
       );
     });
 
@@ -162,8 +160,7 @@ describe("Result", () => {
 
       assert.throws(
         () => result.expect("failed"),
-        (err) =>
-          err instanceof Error && err.message.includes("failed - Error: boom"),
+        (err) => err instanceof Error && err.message.includes("failed - Error: boom"),
       );
     });
 
@@ -287,6 +284,23 @@ describe("Result", () => {
 
       it("should return true for Err instances", () => {
         assert.strictEqual(Result.isResult(new Err("error")), true);
+      });
+
+      it("should return true for cross-realm objects matching the result brand", () => {
+        const brandSymbol = Symbol.for("noctuatech.result");
+        const customObj = {
+          [brandSymbol]: true,
+          ok: true,
+          err: false,
+          val: "cross-realm success",
+        };
+
+        // Standard instanceof check would fail:
+        assert.strictEqual(customObj instanceof Ok, false);
+        assert.strictEqual(customObj instanceof Err, false);
+
+        // But isResult should correctly identify it:
+        assert.strictEqual(Result.isResult(customObj), true);
       });
 
       it("should return false for other values", () => {
@@ -565,10 +579,96 @@ describe("Result", () => {
       const result = new Ok(complexObj);
 
       assert.deepStrictEqual(result.unwrap(), complexObj);
-      assert.strictEqual(
-        result.toString(),
-        `Ok({"id":1,"name":"test","data":[1,2,3]})`,
+      assert.strictEqual(result.toString(), `Ok({"id":1,"name":"test","data":[1,2,3]})`);
+    });
+  });
+
+  describe("Cloning and Stack Trace Preservation", () => {
+    it("should shallow clone an Ok result", () => {
+      const original = new Ok({ val: 42 });
+      const cloned = original.clone();
+
+      assert.ok(cloned instanceof Ok);
+      assert.notStrictEqual(cloned, original);
+      assert.deepStrictEqual(cloned.val, original.val);
+    });
+
+    it("should shallow clone an Err result and preserve its private stack trace", () => {
+      const original = new Err("original error");
+      const cloned = original.clone();
+
+      assert.ok(cloned instanceof Err);
+      assert.notStrictEqual(cloned, original);
+      assert.strictEqual(cloned.val, original.val);
+      assert.strictEqual(cloned.stack, original.stack);
+    });
+
+    it("should preserve the original stack trace of a failed operation in Result.attempt", async () => {
+      let originalErr: Err<string> | undefined;
+
+      const res = await Result.attempt(
+        async () => {
+          originalErr = new Err("network issue");
+          return originalErr;
+        },
+        { attempts: 2, timeout: 0, backoff: 0 },
       );
+
+      assert.ok(res.err);
+      assert.ok(originalErr);
+      assert.strictEqual(res.stack, originalErr.stack);
+      assert.strictEqual(res.attempted, true);
+    });
+  });
+
+  describe("Async Chaining Combinators", () => {
+    describe("mapAsync", () => {
+      it("should map an Ok value using an async function", async () => {
+        const result = new Ok(5);
+        const mapped = await result.mapAsync(async (x) => x * 2);
+
+        assert.ok(mapped instanceof Ok);
+        assert.strictEqual(mapped.unwrap(), 10);
+      });
+
+      it("should bypass mapAsync on an Err value", async () => {
+        const result = new Err("fail") as Result<number, string>;
+        const mapped = await result.mapAsync(async (x) => x * 2);
+
+        assert.ok(mapped instanceof Err);
+        assert.strictEqual(mapped.val, "fail");
+      });
+    });
+
+    describe("andThenAsync", () => {
+      it("should chain an Ok value to another async Ok result", async () => {
+        const result = new Ok(5);
+        const chained = await result.andThenAsync(async (x) => new Ok(x * 2));
+
+        assert.ok(chained instanceof Ok);
+        assert.strictEqual(chained.unwrap(), 10);
+      });
+
+      it("should chain an Ok value to an async Err result", async () => {
+        const result = new Ok(5);
+        const chained = await result.andThenAsync(async (x) => new Err("failed chain"));
+
+        assert.ok(chained instanceof Err);
+        assert.strictEqual(chained.val, "failed chain");
+      });
+
+      it("should bypass andThenAsync on an Err value", async () => {
+        const result = new Err("initial fail") as Result<number, string>;
+        let called = false;
+        const chained = await result.andThenAsync(async (x) => {
+          called = true;
+          return new Ok(x * 2);
+        });
+
+        assert.ok(chained instanceof Err);
+        assert.strictEqual(chained.val, "initial fail");
+        assert.strictEqual(called, false);
+      });
     });
   });
 });
