@@ -3,8 +3,12 @@
   "version": "1.2.0",
   "type": "module",
   "main": "target/lib.js",
+  "types": "target/lib.d.ts",
   "exports": {
-    ".": "./target/lib.js"
+    ".": {
+      "types": "./target/lib.d.ts",
+      "import": "./target/lib.js"
+    }
   },
   "sideEffects": false,
   "scripts": {
