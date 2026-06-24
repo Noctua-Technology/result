@@ -85,13 +85,59 @@ Get a safe fallback value.
 const timeoutMs = Result.err("missing config").unwrapOr(5000); // 5000
 ```
 
-You can also pass a function to compute a fallback from the error.
+### `unwrapOrElse`
+
+Compute a fallback from the error using a closure.
 
 ```ts
-const timeoutMs = Result.err("missing config").unwrapOr((err) => {
+const timeoutMs = Result.err("missing config").unwrapOrElse((err) => {
   console.warn(err);
   return 5000;
 });
+```
+
+### `orElse`
+
+Chain operations on error results. Returns the original `Ok` value, or calls the mapper with the error value and returns its result if it is an `Err`.
+
+```ts
+const res = Result.err("timeout").orElse((err) => Result.ok(3000)); // Ok(3000)
+```
+
+### `mapOr`
+
+Returns the default value if `Err`, or applies the mapper function to the contained `Ok` value.
+
+```ts
+const len = Result.ok("hello").mapOr(0, (s) => s.length); // 5
+const lenFallback = Result.err("error").mapOr(0, (s) => s.length); // 0
+```
+
+### `mapOrElse`
+
+Maps a `Result<T, E>` to `U` by applying a fallback function to a contained `Err`, or a mapper function to a contained `Ok` value.
+
+```ts
+const len = Result.ok("hello").mapOrElse(
+  (err) => 0,
+  (s) => s.length,
+); // 5
+const lenFallback = Result.err("error").mapOrElse(
+  (err) => err.length,
+  (s) => s.length,
+); // 5
+```
+
+### Async Operations (`mapAsync` and `andThenAsync`)
+
+Transform and chain async operations directly on Results:
+
+```ts
+// mapAsync: map the success value asynchronously
+const mapped = await Result.ok(5).mapAsync(async (x) => x * 2); // Ok(10)
+
+// andThenAsync: chain an async operation returning another Result
+const chained = await Result.ok(5).andThenAsync(async (x) => Result.ok(x * 2)); // Ok(10)
 ```
 
 ## Wrapping throwing code
@@ -174,16 +220,28 @@ if (Result.isResult(maybe)) {
 }
 ```
 
+## Stack trace configuration
+
+By default, `Err` objects capture the stack trace from where they were constructed. If you are using results in a performance-critical hot path, you can disable stack trace capturing globally:
+
+```ts
+import { Result } from "@noctuatech/result";
+
+Result.captureStackTrace = false;
+```
+
 ## API summary
 
 - Constructors: `new Ok(value)`, `new Err(error)`
 - Helpers: `Result.ok(value)`, `Result.err(error)`
-- Transform: `map`, `andThen`, `mapErr`
-- Read values: `unwrap`, `unwrapOr` (value or function), `expect`, `expectErr`
+- Transform: `map`, `andThen`, `mapErr`, `orElse`, `mapOr`, `mapOrElse`, `mapAsync`, `andThenAsync`
+- Read values: `unwrap`, `unwrapOr`, `unwrapOrElse`, `expect`, `expectErr`
+- Clone: `clone`
 - Wrappers: `Result.wrap`, `Result.wrapAsync`
 - Retry: `Result.attempt`
 - Collect: `Result.all`
 - Type guard: `Result.isResult`
+- Configuration: `Result.captureStackTrace`
 
 ## Development
 

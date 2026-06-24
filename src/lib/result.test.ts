@@ -524,6 +524,21 @@ describe("Result", () => {
       // Note: result.stack still prepends `${this}\n` so it will be "Err(error)\n"
       assert.strictEqual(result.stack, "Err(error)\n");
     });
+
+    it("should handle stack retrieval errors when capturing stack trace", () => {
+      const originalPrepare = Error.prepareStackTrace;
+      Error.prepareStackTrace = () => {
+        throw new Error("mock error");
+      };
+
+      try {
+        const result = new Err("error");
+        // Ensure result compiles and stack is built gracefully without crashing
+        assert.ok(result.stack);
+      } finally {
+        Error.prepareStackTrace = originalPrepare;
+      }
+    });
   });
 
   describe("Harden toString tests", () => {
@@ -534,6 +549,26 @@ describe("Result", () => {
       const result = new Ok(obj);
 
       assert.strictEqual(result.toString(), 'Ok({"key":"value"})');
+    });
+
+    it("should handle null in toString", () => {
+      const result = new Ok(null);
+      assert.strictEqual(result.toString(), "Ok(null)");
+    });
+
+    it("should handle undefined in toString", () => {
+      const result = new Ok(undefined);
+      assert.strictEqual(result.toString(), "Ok(undefined)");
+    });
+
+    it("should handle unserializable object in toString", () => {
+      const badObj = {
+        toString() {
+          throw new Error("cannot convert to string");
+        },
+      };
+      const result = new Ok(badObj);
+      assert.strictEqual(result.toString(), "Ok([Unserializable Value])");
     });
   });
 
@@ -601,6 +636,17 @@ describe("Result", () => {
       assert.notStrictEqual(cloned, original);
       assert.strictEqual(cloned.val, original.val);
       assert.strictEqual(cloned.stack, original.stack);
+    });
+
+    it("should shallow clone an Err result and preserve its attempted property", () => {
+      const original = new Err("original error");
+      original.attempted = true;
+      const cloned = original.clone();
+
+      assert.ok(cloned instanceof Err);
+      assert.notStrictEqual(cloned, original);
+      assert.strictEqual(cloned.val, original.val);
+      assert.strictEqual(cloned.attempted, true);
     });
 
     it("should preserve the original stack trace of a failed operation in Result.attempt", async () => {

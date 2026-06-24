@@ -14,6 +14,7 @@
   "scripts": {
     "build": "wireit",
     "test": "wireit",
+    "test:coverage": "wireit",
     "prepare": "husky"
   },
   "wireit": {
@@ -31,6 +32,12 @@
     },
     "test": {
       "command": "node --enable-source-maps --test \"./target/**/*.test.js\"",
+      "dependencies": [
+        "build"
+      ]
+    },
+    "test:coverage": {
+      "command": "node --enable-source-maps --experimental-test-coverage --test \"./target/**/*.test.js\"",
       "dependencies": [
         "build"
       ]
