@@ -316,7 +316,10 @@ export namespace Result {
     }
 
     if (res.err) {
-      res.attempted = true;
+      const finalErr = new Err(res.val);
+      finalErr.attempted = true;
+
+      return finalErr;
     }
 
     return res;
