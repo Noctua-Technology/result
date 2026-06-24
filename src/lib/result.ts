@@ -92,12 +92,8 @@ interface BaseResult<T, E> extends Iterable<T> {
    * Calls `mapper` asynchronously if the result is `Ok`, otherwise returns the `Err` value of self.
    */
   andThenAsync<T2>(mapper: (val: T) => Promise<Ok<T2>>): Promise<Result<T2, E>>;
-  andThenAsync<E2>(
-    mapper: (val: T) => Promise<Err<E2>>,
-  ): Promise<Result<T, E | E2>>;
-  andThenAsync<T2, E2>(
-    mapper: (val: T) => Promise<Result<T2, E2>>,
-  ): Promise<Result<T2, E | E2>>;
+  andThenAsync<E2>(mapper: (val: T) => Promise<Err<E2>>): Promise<Result<T, E | E2>>;
+  andThenAsync<T2, E2>(mapper: (val: T) => Promise<Result<T2, E2>>): Promise<Result<T2, E | E2>>;
 
   /**
    * Shallow clones the result, preserving any existing stack traces for errors.
@@ -159,9 +155,7 @@ export class Err<E> implements BaseResult<never, E> {
   }
 
   unwrap(): never {
-    throw new Error(
-      `Tried to unwrap Error: ${toString(this.val)}\n${this.#stack}`,
-    );
+    throw new Error(`Tried to unwrap Error: ${toString(this.val)}\n${this.#stack}`);
   }
 
   map(_mapper: unknown): Err<E> {
@@ -263,15 +257,9 @@ export class Ok<T> implements BaseResult<T, never> {
   }
 
   async andThenAsync<T2>(mapper: (val: T) => Promise<Ok<T2>>): Promise<Ok<T2>>;
-  async andThenAsync<E2>(
-    mapper: (val: T) => Promise<Err<E2>>,
-  ): Promise<Result<T, E2>>;
-  async andThenAsync<T2, E2>(
-    mapper: (val: T) => Promise<Result<T2, E2>>,
-  ): Promise<Result<T2, E2>>;
-  async andThenAsync<T2, E2>(
-    mapper: (val: T) => Promise<Result<T2, E2>>,
-  ): Promise<Result<T2, E2>> {
+  async andThenAsync<E2>(mapper: (val: T) => Promise<Err<E2>>): Promise<Result<T, E2>>;
+  async andThenAsync<T2, E2>(mapper: (val: T) => Promise<Result<T2, E2>>): Promise<Result<T2, E2>>;
+  async andThenAsync<T2, E2>(mapper: (val: T) => Promise<Result<T2, E2>>): Promise<Result<T2, E2>> {
     return mapper(this.val);
   }
 
@@ -329,9 +317,7 @@ export namespace Result {
    * Wrap an async operation that may throw an Error (`try-catch` style) into checked exception style
    * @param op The operation function
    */
-  export async function wrapAsync<T, E = unknown>(
-    op: () => Promise<T> | T,
-  ): Promise<Result<T, E>> {
+  export async function wrapAsync<T, E = unknown>(op: () => Promise<T> | T): Promise<Result<T, E>> {
     try {
       const val = await op();
       return new Ok(val);
@@ -388,9 +374,7 @@ export namespace Result {
     return res;
   }
 
-  export function isResult<T = any, E = any>(
-    val: unknown,
-  ): val is Result<T, E> {
+  export function isResult<T = any, E = any>(val: unknown): val is Result<T, E> {
     return typeof val === "object" && val !== null && RESULT_BRAND in val;
   }
 
@@ -405,9 +389,7 @@ export namespace Result {
     { [K in keyof T]: T[K] extends Result<any, infer F> ? F : never }[number]
   >;
   export function all<T, E>(results: Result<T, E>[]): Result<T[], E>;
-  export function all(
-    results: Result<unknown, unknown>[],
-  ): Result<unknown[], unknown> {
+  export function all(results: Result<unknown, unknown>[]): Result<unknown[], unknown> {
     const values: unknown[] = [];
 
     for (const result of results) {

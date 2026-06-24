@@ -126,9 +126,7 @@ describe("Result", () => {
 
       assert.throws(
         () => result.unwrap(),
-        (err) =>
-          err instanceof Error &&
-          err.message.includes("Tried to unwrap Error: explode"),
+        (err) => err instanceof Error && err.message.includes("Tried to unwrap Error: explode"),
       );
     });
 
@@ -162,8 +160,7 @@ describe("Result", () => {
 
       assert.throws(
         () => result.expect("failed"),
-        (err) =>
-          err instanceof Error && err.message.includes("failed - Error: boom"),
+        (err) => err instanceof Error && err.message.includes("failed - Error: boom"),
       );
     });
 
@@ -582,10 +579,7 @@ describe("Result", () => {
       const result = new Ok(complexObj);
 
       assert.deepStrictEqual(result.unwrap(), complexObj);
-      assert.strictEqual(
-        result.toString(),
-        `Ok({"id":1,"name":"test","data":[1,2,3]})`,
-      );
+      assert.strictEqual(result.toString(), `Ok({"id":1,"name":"test","data":[1,2,3]})`);
     });
   });
 
