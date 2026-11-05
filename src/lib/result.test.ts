@@ -2,6 +2,7 @@ import assert from "node:assert";
 import { describe, it } from "node:test";
 
 import { Ok, Err, Result } from "./result.js";
+import { AsyncResult, isAsyncResult } from "./async-result.js";
 
 describe("Result", () => {
   describe("Ok", () => {
@@ -276,6 +277,14 @@ describe("Result", () => {
 
         assert.ok(result instanceof Err);
         assert.strictEqual(result.val, "sync error in async");
+      });
+
+      it("should support fluent chaining directly from Result.wrapAsync without await", async () => {
+        const chained = Result.wrapAsync(async () => 5)
+          .map((x) => x * 2)
+          .andThen((x) => new Ok(`val: ${x}`));
+
+        assert.strictEqual(await chained.unwrap(), "val: 10");
       });
     });
 
@@ -739,6 +748,16 @@ describe("Result", () => {
         assert.ok(mapped instanceof Err);
         assert.strictEqual(mapped.val, "fail");
       });
+
+      it("should return an AsyncResult that supports un-awaited fluent chaining", async () => {
+        const result = new Ok(5) as Result<number, string>;
+        const chained = result
+          .mapAsync(async (x) => x * 2)
+          .map((x) => x + 10)
+          .andThen((x) => new Ok(`val: ${x}`));
+
+        assert.strictEqual(await chained.unwrap(), "val: 20");
+      });
     });
 
     describe("andThenAsync", () => {
@@ -769,6 +788,32 @@ describe("Result", () => {
         assert.ok(chained instanceof Err);
         assert.strictEqual(chained.val, "initial fail");
         assert.strictEqual(called, false);
+      });
+
+      it("should return an AsyncResult that supports un-awaited fluent chaining", async () => {
+        const result = new Ok(5) as Result<number, string>;
+        const chained = result.andThenAsync(async (x) => new Ok(x * 3)).map((x) => x + 5);
+
+        assert.strictEqual(await chained.unwrap(), 20);
+      });
+    });
+
+    describe("toAsyncResult", () => {
+      it("should convert an Ok result to AsyncResult and support fluent chaining", async () => {
+        const result = new Ok(10) as Result<number, string>;
+        const asyncRes = result.toAsyncResult();
+
+        assert.strictEqual(isAsyncResult(asyncRes), true);
+        const mapped = asyncRes.map((x) => x * 2);
+        assert.strictEqual(await mapped.unwrap(), 20);
+      });
+
+      it("should convert an Err result to AsyncResult and support fallback", async () => {
+        const result = new Err("fail") as Result<number, string>;
+        const asyncRes = result.toAsyncResult();
+
+        assert.strictEqual(isAsyncResult(asyncRes), true);
+        assert.strictEqual(await asyncRes.unwrapOr(100), 100);
       });
     });
   });
