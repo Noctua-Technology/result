@@ -83,17 +83,22 @@ interface BaseResult<T, E> extends Iterable<T> {
   mapOrElse<U>(defaultFn: (err: E) => U, mapper: (val: T) => U): U;
 
   /**
-   * Maps a `Result<T, E>` to `Promise<Result<U, E>>` by applying an async function to a contained `Ok` value,
+   * Maps a `Result<T, E>` to `AsyncResult<U, E>` by applying an async function to a contained `Ok` value,
    * leaving an `Err` value untouched.
    */
-  mapAsync<U>(mapper: (val: T) => Promise<U>): Promise<Result<U, E>>;
+  mapAsync<U>(mapper: (val: T) => Promise<U>): AsyncResult<U, E>;
 
   /**
    * Calls `mapper` asynchronously if the result is `Ok`, otherwise returns the `Err` value of self.
    */
-  andThenAsync<T2>(mapper: (val: T) => Promise<Ok<T2>>): Promise<Result<T2, E>>;
-  andThenAsync<E2>(mapper: (val: T) => Promise<Err<E2>>): Promise<Result<T, E | E2>>;
-  andThenAsync<T2, E2>(mapper: (val: T) => Promise<Result<T2, E2>>): Promise<Result<T2, E | E2>>;
+  andThenAsync<T2>(mapper: (val: T) => Promise<Ok<T2>>): AsyncResult<T2, E>;
+  andThenAsync<E2>(mapper: (val: T) => Promise<Err<E2>>): AsyncResult<T, E | E2>;
+  andThenAsync<T2, E2>(mapper: (val: T) => Promise<Result<T2, E2>>): AsyncResult<T2, E | E2>;
+
+  /**
+   * Converts this Result to an AsyncResult.
+   */
+  toAsyncResult(): AsyncResult<T, E>;
 
   /**
    * Shallow clones the result, preserving any existing stack traces for errors.
@@ -162,16 +167,20 @@ export class Err<E> implements BaseResult<never, E> {
     return this;
   }
 
-  async mapAsync(_mapper: unknown): Promise<Err<E>> {
-    return this;
+  mapAsync(_mapper: unknown): AsyncResult<never, E> {
+    return new AsyncErr(this.val);
   }
 
   andThen(op: unknown): Err<E> {
     return this;
   }
 
-  async andThenAsync(op: unknown): Promise<Err<E>> {
-    return this;
+  andThenAsync(op: unknown): AsyncResult<never, E> {
+    return new AsyncErr(this.val);
+  }
+
+  toAsyncResult(): AsyncErr<E> {
+    return new AsyncErr(this.val);
   }
 
   mapErr<E2>(mapper: (err: E) => E2): Err<E2> {
@@ -245,8 +254,8 @@ export class Ok<T> implements BaseResult<T, never> {
     return new Ok(mapper(this.val));
   }
 
-  mapAsync<U>(mapper: (val: T) => Promise<U>): Promise<Ok<U>> {
-    return mapper(this.val).then((val) => new Ok(val));
+  mapAsync<U>(mapper: (val: T) => Promise<U>): AsyncResult<U, never> {
+    return new AsyncOk(mapper(this.val));
   }
 
   andThen<T2>(mapper: (val: T) => Ok<T2>): Ok<T2>;
@@ -256,11 +265,15 @@ export class Ok<T> implements BaseResult<T, never> {
     return mapper(this.val);
   }
 
-  async andThenAsync<T2>(mapper: (val: T) => Promise<Ok<T2>>): Promise<Ok<T2>>;
-  async andThenAsync<E2>(mapper: (val: T) => Promise<Err<E2>>): Promise<Result<T, E2>>;
-  async andThenAsync<T2, E2>(mapper: (val: T) => Promise<Result<T2, E2>>): Promise<Result<T2, E2>>;
-  async andThenAsync<T2, E2>(mapper: (val: T) => Promise<Result<T2, E2>>): Promise<Result<T2, E2>> {
-    return mapper(this.val);
+  andThenAsync<T2>(mapper: (val: T) => Promise<Ok<T2>>): AsyncResult<T2, never>;
+  andThenAsync<E2>(mapper: (val: T) => Promise<Err<E2>>): AsyncResult<T, E2>;
+  andThenAsync<T2, E2>(mapper: (val: T) => Promise<Result<T2, E2>>): AsyncResult<T2, E2>;
+  andThenAsync<T2, E2>(mapper: (val: T) => Promise<Result<T2, E2>>): AsyncResult<T2, E2> {
+    return new AsyncResult(mapper(this.val));
+  }
+
+  toAsyncResult(): AsyncOk<T> {
+    return new AsyncOk(this.val);
   }
 
   mapErr(_mapper: unknown): Ok<T> {
@@ -317,13 +330,8 @@ export namespace Result {
    * Wrap an async operation that may throw an Error (`try-catch` style) into checked exception style
    * @param op The operation function
    */
-  export async function wrapAsync<T, E = unknown>(op: () => Promise<T> | T): Promise<Result<T, E>> {
-    try {
-      const val = await op();
-      return new Ok(val);
-    } catch (e) {
-      return new Err<E>(e as E);
-    }
+  export function wrapAsync<T, E = unknown>(op: () => Promise<T> | T): AsyncResult<T, E> {
+    return AsyncResult.wrap<T, E>(op);
   }
 
   /**
@@ -402,4 +410,233 @@ export namespace Result {
 
     return new Ok(values);
   }
+}
+
+export const ASYNC_RESULT_BRAND = Symbol.for("noctuatech.async-result");
+
+export class AsyncResult<T, E> implements PromiseLike<Result<T, E>> {
+  readonly [ASYNC_RESULT_BRAND] = true;
+  readonly #promise: Promise<Result<T, E>>;
+
+  constructor(input: Result<T, E> | PromiseLike<Result<T, E>>) {
+    this.#promise = Promise.resolve(input);
+  }
+
+  then<TResult1 = Result<T, E>, TResult2 = never>(
+    onfulfilled?: ((value: Result<T, E>) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
+  ): Promise<TResult1 | TResult2> {
+    return this.#promise.then(onfulfilled, onrejected);
+  }
+
+  catch<TResult = never>(
+    onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
+  ): Promise<Result<T, E> | TResult> {
+    return this.#promise.catch(onrejected);
+  }
+
+  finally(onfinally?: (() => void) | null): Promise<Result<T, E>> {
+    return this.#promise.finally(onfinally);
+  }
+
+  toPromise(): Promise<Result<T, E>> {
+    return this.#promise;
+  }
+
+  map<U>(mapper: (val: T) => U | PromiseLike<U>): AsyncResult<U, E> {
+    return new AsyncResult<U, E>(
+      this.#promise.then(async (res) => {
+        if (res.ok) {
+          const mapped = await mapper(res.val);
+          return new Ok(mapped);
+        }
+        return res;
+      }),
+    );
+  }
+
+  mapErr<F>(mapper: (err: E) => F | PromiseLike<F>): AsyncResult<T, F> {
+    return new AsyncResult<T, F>(
+      this.#promise.then(async (res) => {
+        if (res.err) {
+          const mapped = await mapper(res.val);
+          return new Err(mapped);
+        }
+        return res;
+      }),
+    );
+  }
+
+  andThen<T2, E2>(
+    mapper: (val: T) => Result<T2, E2> | AsyncResult<T2, E2> | PromiseLike<Result<T2, E2>>,
+  ): AsyncResult<T2, E | E2> {
+    return new AsyncResult<T2, E | E2>(
+      this.#promise.then(async (res) => {
+        if (res.ok) {
+          return await mapper(res.val);
+        }
+        return res;
+      }),
+    );
+  }
+
+  orElse<T2, F>(
+    mapper: (err: E) => Result<T2, F> | AsyncResult<T2, F> | PromiseLike<Result<T2, F>>,
+  ): AsyncResult<T | T2, F> {
+    return new AsyncResult<T | T2, F>(
+      this.#promise.then(async (res) => {
+        if (res.err) {
+          return await mapper(res.val);
+        }
+        return res;
+      }),
+    );
+  }
+
+  async unwrap(): Promise<T> {
+    const res = await this.#promise;
+    return res.unwrap();
+  }
+
+  async unwrapOr<T2>(defaultVal: T2): Promise<T | T2> {
+    const res = await this.#promise;
+    return res.unwrapOr(defaultVal);
+  }
+
+  async unwrapOrElse<T2>(fn: (err: E) => T2 | PromiseLike<T2>): Promise<T | T2> {
+    const res = await this.#promise;
+    if (res.err) {
+      return await fn(res.val);
+    }
+    return res.val;
+  }
+
+  async expect(msg: string): Promise<T> {
+    const res = await this.#promise;
+    return res.expect(msg);
+  }
+
+  async expectErr(msg: string): Promise<E> {
+    const res = await this.#promise;
+    return res.expectErr(msg);
+  }
+
+  async mapOr<U>(defaultVal: U, mapper: (val: T) => U | PromiseLike<U>): Promise<U> {
+    const res = await this.#promise;
+    if (res.ok) {
+      return await mapper(res.val);
+    }
+    return defaultVal;
+  }
+
+  async mapOrElse<U>(
+    defaultFn: (err: E) => U | PromiseLike<U>,
+    mapper: (val: T) => U | PromiseLike<U>,
+  ): Promise<U> {
+    const res = await this.#promise;
+    if (res.ok) {
+      return await mapper(res.val);
+    }
+    return await defaultFn(res.val);
+  }
+
+  clone(): AsyncResult<T, E> {
+    return new AsyncResult<T, E>(this.#promise.then((res) => res.clone()));
+  }
+
+  get [Symbol.toStringTag](): string {
+    return "AsyncResult";
+  }
+
+  static ok<T, E = never>(val: T | PromiseLike<T>): AsyncOk<T> {
+    return new AsyncOk(val);
+  }
+
+  static err<E, T = never>(err: E | PromiseLike<E>): AsyncErr<E> {
+    return new AsyncErr(err);
+  }
+
+  static from<T, E>(input: Result<T, E> | PromiseLike<Result<T, E>>): AsyncResult<T, E> {
+    return new AsyncResult(input);
+  }
+
+  static wrap<T, E = unknown>(op: () => Promise<T> | T): AsyncResult<T, E> {
+    return new AsyncResult(
+      (async () => {
+        try {
+          const val = await op();
+          return new Ok(val);
+        } catch (e) {
+          return new Err<E>(e as E);
+        }
+      })(),
+    );
+  }
+
+  static all<
+    T extends readonly (Result<unknown, unknown> | PromiseLike<Result<unknown, unknown>>)[],
+  >(
+    results: [...T],
+  ): AsyncResult<
+    {
+      [K in keyof T]: T[K] extends PromiseLike<Result<infer U, any>>
+        ? U
+        : T[K] extends Result<infer U, any>
+          ? U
+          : never;
+    },
+    {
+      [K in keyof T]: T[K] extends PromiseLike<Result<any, infer F>>
+        ? F
+        : T[K] extends Result<any, infer F>
+          ? F
+          : never;
+    }[number]
+  >;
+  static all<T, E>(results: (Result<T, E> | PromiseLike<Result<T, E>>)[]): AsyncResult<T[], E>;
+  static all(
+    results: (Result<unknown, unknown> | PromiseLike<Result<unknown, unknown>>)[],
+  ): AsyncResult<unknown[], unknown> {
+    return new AsyncResult(
+      Promise.all(results.map((r) => Promise.resolve(r))).then((resolved) => Result.all(resolved)),
+    );
+  }
+}
+
+export class AsyncOk<T> extends AsyncResult<T, never> {
+  constructor(val: T | Ok<T> | PromiseLike<T | Ok<T>>) {
+    super(
+      Promise.resolve(val).then((v) => {
+        if (v instanceof Ok) {
+          return v;
+        }
+        return new Ok(v);
+      }),
+    );
+  }
+
+  override get [Symbol.toStringTag](): string {
+    return "AsyncOk";
+  }
+}
+
+export class AsyncErr<E> extends AsyncResult<never, E> {
+  constructor(err: E | Err<E> | PromiseLike<E | Err<E>>) {
+    super(
+      Promise.resolve(err).then((e) => {
+        if (e instanceof Err) {
+          return e;
+        }
+        return new Err(e);
+      }),
+    );
+  }
+
+  override get [Symbol.toStringTag](): string {
+    return "AsyncErr";
+  }
+}
+
+export function isAsyncResult<T = any, E = any>(val: unknown): val is AsyncResult<T, E> {
+  return typeof val === "object" && val !== null && ASYNC_RESULT_BRAND in val;
 }
