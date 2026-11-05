@@ -69,7 +69,7 @@ interface BaseResult<T, E> extends Iterable<T> {
   /**
    * Calls `mapper` if the result is `Err`, otherwise returns the `Ok` value of self.
    */
-  orElse<F>(mapper: (err: E) => Result<T, F>): Result<T, F>;
+  orElse<T2, F>(mapper: (err: E) => Result<T2, F>): Result<T | T2, F>;
 
   /**
    * Returns the default value if `Err`, or applies the mapper function to the contained `Ok` value.
@@ -267,7 +267,7 @@ export class Ok<T> implements BaseResult<T, never> {
     return this;
   }
 
-  orElse<F>(_mapper: (err: never) => Result<T, F>): Ok<T> {
+  orElse(_mapper: unknown): Ok<T> {
     return this;
   }
 
@@ -399,6 +399,7 @@ export namespace Result {
 
       values.push(result.val);
     }
+
     return new Ok(values);
   }
 }

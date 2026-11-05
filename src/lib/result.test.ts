@@ -6,7 +6,7 @@ import { Ok, Err, Result } from "./result.js";
 describe("Result", () => {
   describe("Ok", () => {
     it("should create an Ok result with a value", () => {
-      const result = new Ok(42);
+      const result = new Ok(42) as Result<number, string>;
 
       assert.strictEqual(result.ok, true);
       assert.strictEqual(result.err, false);
@@ -14,22 +14,22 @@ describe("Result", () => {
     });
 
     it("should unwrap Ok value correctly", () => {
-      const result = new Ok("success");
+      const result = new Ok("success") as Result<string, string>;
 
       assert.strictEqual(result.unwrap(), "success");
     });
 
     it("should return value from unwrapOr when Ok", () => {
-      const result = new Ok("original");
+      const result = new Ok("original") as Result<string, string>;
 
       assert.strictEqual(result.unwrapOr("default"), "original");
     });
 
     it("should return value from unwrapOrElse when Ok", () => {
-      const result = new Ok("value");
+      const result = new Ok("value") as Result<string, string>;
       let called = false;
 
-      const output = result.unwrapOrElse(() => {
+      const output = result.unwrapOrElse((err) => {
         called = true;
         return "fallback";
       });
@@ -39,13 +39,13 @@ describe("Result", () => {
     });
 
     it("should return value from expect when Ok", () => {
-      const result = new Ok("test");
+      const result = new Ok("test") as Result<string, string>;
 
       assert.strictEqual(result.expect("should not throw"), "test");
     });
 
     it("should throw when expectErr is called on Ok", () => {
-      const result = new Ok("test");
+      const result = new Ok("test") as Result<string, string>;
 
       assert.throws(() => result.expectErr("should throw"), {
         message: "should throw",
@@ -53,7 +53,7 @@ describe("Result", () => {
     });
 
     it("should include custom message in expectErr error", () => {
-      const result = new Ok("ok");
+      const result = new Ok("ok") as Result<string, string>;
 
       assert.throws(
         () => result.expectErr("expected error"),
@@ -62,7 +62,7 @@ describe("Result", () => {
     });
 
     it("should map Ok value correctly", () => {
-      const result = new Ok(5);
+      const result = new Ok(5) as Result<number, string>;
       const mapped = result.map((x) => x * 2);
 
       assert.ok(mapped instanceof Ok);
@@ -70,7 +70,7 @@ describe("Result", () => {
     });
 
     it("should chain operations with andThen", () => {
-      const result = new Ok(5);
+      const result = new Ok(5) as Result<number, string>;
       const chained = result.andThen((x) => new Ok(x * 2));
 
       assert.ok(chained instanceof Ok);
@@ -86,20 +86,20 @@ describe("Result", () => {
     });
 
     it("should convert to string correctly", () => {
-      const result = new Ok("test");
+      const result = new Ok("test") as Result<string, string>;
 
       assert.strictEqual(result.toString(), "Ok(test)");
     });
 
     it("should be iterable and yield the inner value once when iterable", () => {
-      const result = new Ok([1, 2, 3]);
+      const result = new Ok([1, 2, 3]) as Result<number[], string>;
       const values = [...result];
 
       assert.deepStrictEqual(values, [[1, 2, 3]]);
     });
 
     it("should be iterable and yield the inner value once when not iterable", () => {
-      const result = new Ok(100);
+      const result = new Ok(100) as Result<number, string>;
       const values = [...result];
 
       assert.deepStrictEqual(values, [100]);
@@ -108,7 +108,7 @@ describe("Result", () => {
 
   describe("Err", () => {
     it("should create an Err result with an error", () => {
-      const result = new Err("error message");
+      const result = new Err("error message") as Result<number, string>;
 
       assert.strictEqual(result.ok, false);
       assert.strictEqual(result.err, true);
@@ -116,13 +116,13 @@ describe("Result", () => {
     });
 
     it("should throw when unwrap is called on Err", () => {
-      const result = new Err("test error");
+      const result = new Err("test error") as Result<number, string>;
 
       assert.throws(() => result.unwrap());
     });
 
     it("should include error value in unwrap message", () => {
-      const result = new Err("explode");
+      const result = new Err("explode") as Result<number, string>;
 
       assert.throws(
         () => result.unwrap(),
@@ -131,13 +131,13 @@ describe("Result", () => {
     });
 
     it("should return default value from unwrapOr when Err", () => {
-      const result = new Err("error");
+      const result = new Err("error") as Result<string, string>;
 
       assert.strictEqual(result.unwrapOr("default"), "default");
     });
 
     it("should call unwrapOrElse with error when Err", () => {
-      const result = new Err("missing");
+      const result = new Err("missing") as Result<string, string>;
       let seen: string | undefined;
 
       const output = result.unwrapOrElse((err) => {
@@ -150,13 +150,13 @@ describe("Result", () => {
     });
 
     it("should throw when expect is called on Err", () => {
-      const result = new Err("test error");
+      const result = new Err("test error") as Result<number, string>;
 
       assert.throws(() => result.expect("custom message"));
     });
 
     it("should include custom message in expect error", () => {
-      const result = new Err("boom");
+      const result = new Err("boom") as Result<number, string>;
 
       assert.throws(
         () => result.expect("failed"),
@@ -165,13 +165,13 @@ describe("Result", () => {
     });
 
     it("should return error value from expectErr when Err", () => {
-      const result = new Err("test error");
+      const result = new Err("test error") as Result<number, string>;
 
       assert.strictEqual(result.expectErr("should not throw"), "test error");
     });
 
     it("should ignore message when expectErr is called on Err", () => {
-      const result = new Err("original");
+      const result = new Err("original") as Result<number, string>;
 
       assert.strictEqual(result.expectErr("ignored"), "original");
     });
@@ -193,7 +193,7 @@ describe("Result", () => {
     });
 
     it("should map error value correctly", () => {
-      const result = new Err("original error");
+      const result = new Err("original error") as Result<number, string>;
       const mapped = result.mapErr((err) => `mapped: ${err}`);
 
       assert.ok(mapped instanceof Err);
@@ -201,19 +201,21 @@ describe("Result", () => {
     });
 
     it("should convert to string correctly", () => {
-      const result = new Err("test error");
+      const result = new Err("test error") as Result<number, string>;
 
       assert.strictEqual(result.toString(), "Err(test error)");
     });
 
     it("should provide stack trace", () => {
-      const result = new Err("error");
+      const result = new Err("error") as Result<number, string>;
 
-      assert.ok(result.stack?.includes("Err(error)"));
+      if (result.err) {
+        assert.ok(result.stack?.includes("Err(error)"));
+      }
     });
 
     it("should not be iterable", () => {
-      const result = new Err("error");
+      const result = new Err("error") as Result<number, string>;
       const values = [...result];
 
       assert.deepStrictEqual(values, []);
@@ -418,21 +420,32 @@ describe("Result", () => {
 
   describe("Result.all", () => {
     it("should return Ok with all values when all results are Ok", () => {
-      const result = Result.all([new Ok(1), new Ok(2), new Ok(3)]);
+      const result = Result.all([
+        new Ok(1) as Result<number, string>,
+        new Ok(2) as Result<number, string>,
+        new Ok(3) as Result<number, string>,
+      ]);
 
       assert.ok(result instanceof Ok);
       assert.deepStrictEqual(result.val, [1, 2, 3]);
     });
 
     it("should return the first Err when any result is Err", () => {
-      const result = Result.all([new Ok(1), new Err("boom"), new Ok(3)]);
+      const result = Result.all([
+        new Ok(1) as Result<number, string>,
+        new Err("boom") as Result<number, string>,
+        new Ok(3) as Result<number, string>,
+      ]);
 
       assert.ok(result instanceof Err);
       assert.strictEqual(result.val, "boom");
     });
 
     it("should return the first Err and not continue evaluating", () => {
-      const result = Result.all([new Err("first"), new Err("second")]);
+      const result = Result.all([
+        new Err("first") as Result<number, string>,
+        new Err("second") as Result<number, string>,
+      ]);
 
       assert.ok(result instanceof Err);
       assert.strictEqual(result.val, "first");
@@ -458,33 +471,70 @@ describe("Result", () => {
   describe("Functional Combinators", () => {
     describe("orElse", () => {
       it("should return the original Ok", () => {
-        const result = new Ok(42);
+        const result = new Ok(42) as Result<number, string>;
+
         const chained = result.orElse((err) => new Ok(100));
 
         assert.ok(chained instanceof Ok);
         assert.strictEqual(chained.unwrap(), 42);
       });
 
+      it("should not invoke mapper on Ok", () => {
+        let called = false;
+        const result = new Ok(42) as Result<number, string>;
+        const chained = result.orElse((err) => {
+          called = true;
+          return new Ok(100);
+        });
+
+        assert.strictEqual(called, false);
+        assert.strictEqual(chained.unwrap(), 42);
+      });
+
       it("should map Err to a new Result", () => {
-        const result = new Err("error");
+        const result = new Err("error") as Result<number, string>;
         const chained = result.orElse((err) => new Ok(100));
 
         assert.ok(chained instanceof Ok);
         assert.strictEqual(chained.unwrap(), 100);
       });
+
+      it("should map Err to a new Result when typed as Result<T, E>", () => {
+        const result = new Err("error") as Result<number, string>;
+        const chained = result.orElse((err) => new Ok(err.length));
+
+        assert.ok(chained instanceof Ok);
+        assert.strictEqual(chained.unwrap(), 5);
+      });
+
+      it("should allow chaining further operations after orElse", () => {
+        const result = new Err("error") as Result<number, string>;
+        const chained = result.orElse((err) => new Ok(err.length)).map((x) => x * 10);
+
+        assert.ok(chained instanceof Ok);
+        assert.strictEqual(chained.unwrap(), 50);
+      });
+
+      it("should return the new Err when mapper returns an Err", () => {
+        const result = new Err("initial") as Result<number, string>;
+        const chained = result.orElse((err) => new Err(`fallback-${err}`));
+
+        assert.ok(chained instanceof Err);
+        assert.strictEqual(chained.val, "fallback-initial");
+      });
     });
 
     describe("mapOr", () => {
       it("should return mapped value on Ok", () => {
-        const result = new Ok(5);
+        const result = new Ok(5) as Result<number, string>;
         const mapped = result.mapOr(10, (x) => x * 2);
 
         assert.strictEqual(mapped, 10);
       });
 
       it("should return default value on Err", () => {
-        const result = new Err("error");
-        const mapped = result.mapOr(10, (x: number) => x * 2);
+        const result = new Err("error") as Result<number, string>;
+        const mapped = result.mapOr(10, (x) => x * 2);
 
         assert.strictEqual(mapped, 10);
       });
@@ -492,9 +542,9 @@ describe("Result", () => {
 
     describe("mapOrElse", () => {
       it("should return mapped value on Ok", () => {
-        const result = new Ok(5);
+        const result = new Ok(5) as Result<number, string>;
         const mapped = result.mapOrElse(
-          (err) => 10,
+          (err) => err.length,
           (x) => x * 2,
         );
 
@@ -502,13 +552,13 @@ describe("Result", () => {
       });
 
       it("should return default function value on Err", () => {
-        const result = new Err("error");
+        const result = new Err("error") as Result<number, string>;
         const mapped = result.mapOrElse(
-          (err) => `default: ${err}`,
-          (x: number) => `mapped: ${x}`,
+          (err) => `default: ${err.length}`,
+          (x) => `mapped: ${x * 2}`,
         );
 
-        assert.strictEqual(mapped, "default: error");
+        assert.strictEqual(mapped, "default: 5");
       });
     });
   });
@@ -546,18 +596,18 @@ describe("Result", () => {
       const obj = Object.create(null);
       obj.key = "value";
 
-      const result = new Ok(obj);
+      const result = new Ok(obj) as Result<{ key: string }, string>;
 
       assert.strictEqual(result.toString(), 'Ok({"key":"value"})');
     });
 
     it("should handle null in toString", () => {
-      const result = new Ok(null);
+      const result = new Ok(null) as Result<null, string>;
       assert.strictEqual(result.toString(), "Ok(null)");
     });
 
     it("should handle undefined in toString", () => {
-      const result = new Ok(undefined);
+      const result = new Ok(undefined) as Result<undefined, string>;
       assert.strictEqual(result.toString(), "Ok(undefined)");
     });
 
@@ -567,14 +617,14 @@ describe("Result", () => {
           throw new Error("cannot convert to string");
         },
       };
-      const result = new Ok(badObj);
+      const result = new Ok(badObj) as Result<{ toString(): string }, string>;
       assert.strictEqual(result.toString(), "Ok([Unserializable Value])");
     });
   });
 
   describe("Complex scenarios", () => {
     it("should handle chaining multiple operations", () => {
-      const result = new Ok(5)
+      const result = (new Ok(5) as Result<number, string>)
         .map((x) => x * 2)
         .andThen((x) => new Ok(x + 3))
         .map((x) => x.toString());
@@ -584,7 +634,7 @@ describe("Result", () => {
     });
 
     it("should handle error propagation in chains", () => {
-      const result = new Ok(5)
+      const result = (new Ok(5) as Result<number, string>)
         .map((x) => x * 2)
         .andThen(() => new Err("chain error"))
         .map((x) => x + 3);
@@ -595,15 +645,15 @@ describe("Result", () => {
 
     it("should handle custom error types", () => {
       const customError = { message: "custom error" };
-      const result = new Err(customError);
+      const result = new Err(customError) as Result<number, typeof customError>;
 
       assert.strictEqual(result.val, customError);
       assert.strictEqual(result.val.message, "custom error");
     });
 
     it("should handle null and undefined values", () => {
-      const nullResult = new Ok(null);
-      const undefinedResult = new Ok(undefined);
+      const nullResult = new Ok(null) as Result<null, string>;
+      const undefinedResult = new Ok(undefined) as Result<undefined, string>;
 
       assert.strictEqual(nullResult.unwrap(), null);
       assert.strictEqual(undefinedResult.unwrap(), undefined);
@@ -611,7 +661,7 @@ describe("Result", () => {
 
     it("should handle complex objects", () => {
       const complexObj = { id: 1, name: "test", data: [1, 2, 3] };
-      const result = new Ok(complexObj);
+      const result = new Ok(complexObj) as Result<typeof complexObj, string>;
 
       assert.deepStrictEqual(result.unwrap(), complexObj);
       assert.strictEqual(result.toString(), `Ok({"id":1,"name":"test","data":[1,2,3]})`);
@@ -620,33 +670,38 @@ describe("Result", () => {
 
   describe("Cloning and Stack Trace Preservation", () => {
     it("should shallow clone an Ok result", () => {
-      const original = new Ok({ val: 42 });
+      const original = new Ok({ val: 42 }) as Result<{ val: number }, string>;
       const cloned = original.clone();
 
       assert.ok(cloned instanceof Ok);
       assert.notStrictEqual(cloned, original);
-      assert.deepStrictEqual(cloned.val, original.val);
+      assert.deepStrictEqual(cloned.val, (original as Ok<{ val: number }>).val);
     });
 
     it("should shallow clone an Err result and preserve its private stack trace", () => {
-      const original = new Err("original error");
+      const original = new Err("original error") as Result<number, string>;
       const cloned = original.clone();
 
       assert.ok(cloned instanceof Err);
       assert.notStrictEqual(cloned, original);
-      assert.strictEqual(cloned.val, original.val);
-      assert.strictEqual(cloned.stack, original.stack);
+      assert.strictEqual(cloned.val, (original as Err<string>).val);
+      if (original.err && cloned.err) {
+        assert.strictEqual(cloned.stack, original.stack);
+      }
     });
 
     it("should shallow clone an Err result and preserve its attempted property", () => {
       const original = new Err("original error");
       original.attempted = true;
-      const cloned = original.clone();
+      const result = original as Result<number, string>;
+      const cloned = result.clone();
 
       assert.ok(cloned instanceof Err);
-      assert.notStrictEqual(cloned, original);
-      assert.strictEqual(cloned.val, original.val);
-      assert.strictEqual(cloned.attempted, true);
+      assert.notStrictEqual(cloned, result);
+      assert.strictEqual(cloned.val, (result as Err<string>).val);
+      if (cloned.err) {
+        assert.strictEqual(cloned.attempted, true);
+      }
     });
 
     it("should preserve the original stack trace of a failed operation in Result.attempt", async () => {
@@ -670,7 +725,7 @@ describe("Result", () => {
   describe("Async Chaining Combinators", () => {
     describe("mapAsync", () => {
       it("should map an Ok value using an async function", async () => {
-        const result = new Ok(5);
+        const result = new Ok(5) as Result<number, string>;
         const mapped = await result.mapAsync(async (x) => x * 2);
 
         assert.ok(mapped instanceof Ok);
@@ -688,7 +743,7 @@ describe("Result", () => {
 
     describe("andThenAsync", () => {
       it("should chain an Ok value to another async Ok result", async () => {
-        const result = new Ok(5);
+        const result = new Ok(5) as Result<number, string>;
         const chained = await result.andThenAsync(async (x) => new Ok(x * 2));
 
         assert.ok(chained instanceof Ok);
@@ -696,7 +751,7 @@ describe("Result", () => {
       });
 
       it("should chain an Ok value to an async Err result", async () => {
-        const result = new Ok(5);
+        const result = new Ok(5) as Result<number, string>;
         const chained = await result.andThenAsync(async (x) => new Err("failed chain"));
 
         assert.ok(chained instanceof Err);
@@ -714,6 +769,321 @@ describe("Result", () => {
         assert.ok(chained instanceof Err);
         assert.strictEqual(chained.val, "initial fail");
         assert.strictEqual(called, false);
+      });
+    });
+  });
+
+  describe("Edge cases and union typing on Result<T, E>", () => {
+    describe("falsy values in Ok", () => {
+      it("should handle 0 correctly in all combinators", () => {
+        const result = new Ok(0) as Result<number, string>;
+
+        assert.strictEqual(result.unwrap(), 0);
+        assert.strictEqual(result.unwrapOr(10), 0);
+        assert.strictEqual(
+          result.unwrapOrElse(() => 10),
+          0,
+        );
+        assert.strictEqual(
+          result.mapOr(10, (x) => x + 5),
+          5,
+        );
+        assert.strictEqual(
+          result.mapOrElse(
+            () => 10,
+            (x) => x + 5,
+          ),
+          5,
+        );
+        assert.strictEqual(result.map((x) => x + 1).unwrap(), 1);
+        assert.deepStrictEqual([...result], [0]);
+      });
+
+      it("should handle empty string correctly in all combinators", () => {
+        const result = new Ok("") as Result<string, string>;
+
+        assert.strictEqual(result.unwrap(), "");
+        assert.strictEqual(result.unwrapOr("default"), "");
+        assert.strictEqual(
+          result.unwrapOrElse(() => "default"),
+          "",
+        );
+        assert.strictEqual(
+          result.mapOr("default", (s) => `val:${s}`),
+          "val:",
+        );
+        assert.strictEqual(
+          result.mapOrElse(
+            () => "default",
+            (s) => `val:${s}`,
+          ),
+          "val:",
+        );
+        assert.deepStrictEqual([...result], [""]);
+      });
+
+      it("should handle false correctly in all combinators", () => {
+        const result = new Ok(false) as Result<boolean, string>;
+
+        assert.strictEqual(result.unwrap(), false);
+        assert.strictEqual(result.unwrapOr(true), false);
+        assert.strictEqual(
+          result.unwrapOrElse(() => true),
+          false,
+        );
+        assert.strictEqual(
+          result.mapOr(true, (b) => !b),
+          true,
+        );
+        assert.strictEqual(
+          result.mapOrElse(
+            () => true,
+            (b) => !b,
+          ),
+          true,
+        );
+        assert.deepStrictEqual([...result], [false]);
+      });
+
+      it("should handle NaN correctly in Ok", () => {
+        const result = new Ok(Number.NaN) as Result<number, string>;
+
+        assert.strictEqual(Number.isNaN(result.unwrap()), true);
+        assert.strictEqual(Number.isNaN(result.unwrapOr(10)), true);
+        assert.strictEqual(Number.isNaN(result.unwrapOrElse(() => 10)), true);
+      });
+
+      it("should handle null and undefined correctly in all combinators", () => {
+        const nullRes = new Ok(null) as Result<null, string>;
+        const undefinedRes = new Ok(undefined) as Result<undefined, string>;
+
+        assert.strictEqual(nullRes.unwrap(), null);
+        assert.strictEqual(nullRes.unwrapOr(undefined), null);
+        assert.strictEqual(
+          nullRes.unwrapOrElse(() => undefined),
+          null,
+        );
+
+        assert.strictEqual(undefinedRes.unwrap(), undefined);
+        assert.strictEqual(undefinedRes.unwrapOr(null), undefined);
+        assert.strictEqual(
+          undefinedRes.unwrapOrElse(() => null),
+          undefined,
+        );
+      });
+    });
+
+    describe("falsy values in Err", () => {
+      it("should handle 0 as error value correctly", () => {
+        const result = new Err(0) as Result<string, number>;
+
+        assert.strictEqual(result.expectErr("fail"), 0);
+        assert.strictEqual(result.unwrapOr("fallback"), "fallback");
+        assert.strictEqual(
+          result.unwrapOrElse((err) => `err:${err}`),
+          "err:0",
+        );
+        assert.strictEqual(result.mapErr((err) => err + 10).val, 10);
+        assert.strictEqual(
+          result.mapOr("default", (val) => val.toUpperCase()),
+          "default",
+        );
+        assert.strictEqual(
+          result.mapOrElse(
+            (err) => `handled:${err}`,
+            (val) => val.toUpperCase(),
+          ),
+          "handled:0",
+        );
+      });
+
+      it("should handle empty string as error value correctly", () => {
+        const result = new Err("") as Result<number, string>;
+
+        assert.strictEqual(result.expectErr("fail"), "");
+        assert.strictEqual(result.unwrapOr(42), 42);
+        assert.strictEqual(
+          result.unwrapOrElse((err) => err.length),
+          0,
+        );
+        assert.strictEqual(
+          result.mapOrElse(
+            (err) => err.length,
+            (x) => x * 2,
+          ),
+          0,
+        );
+      });
+
+      it("should handle false as error value correctly", () => {
+        const result = new Err(false) as Result<number, boolean>;
+
+        assert.strictEqual(result.expectErr("fail"), false);
+        assert.strictEqual(result.unwrapOr(42), 42);
+        assert.strictEqual(
+          result.unwrapOrElse((err) => (err ? 1 : 0)),
+          0,
+        );
+      });
+    });
+
+    describe("type narrowing via .ok and .err properties", () => {
+      it("should narrow Result<T, E> to Ok<T> when checking .ok", () => {
+        const result: Result<number, string> = new Ok(42);
+
+        if (result.ok) {
+          const val: number = result.val;
+          assert.strictEqual(val, 42);
+        } else {
+          assert.fail("expected result.ok to be true");
+        }
+      });
+
+      it("should narrow Result<T, E> to Err<E> when checking .err", () => {
+        const result: Result<number, string> = new Err("narrowed error");
+
+        if (result.err) {
+          const errVal: string = result.val;
+          assert.strictEqual(errVal, "narrowed error");
+          assert.ok(result.stack);
+        } else {
+          assert.fail("expected result.err to be true");
+        }
+      });
+    });
+
+    describe("chaining with mixed union types", () => {
+      it("should propagate union types through andThen", () => {
+        const r1: Result<number, string> = new Ok(10);
+        const r2: Result<string, string | number> = r1.andThen((x) =>
+          x > 5
+            ? (new Ok(`val:${x}`) as Result<string, number>)
+            : (new Err(0) as Result<string, number>),
+        );
+
+        assert.ok(r2 instanceof Ok);
+        assert.strictEqual(r2.unwrap(), "val:10");
+      });
+
+      it("should propagate union types through andThenAsync", async () => {
+        const r1: Result<number, string> = new Ok(10);
+        const r2: Result<string, string | number> = await r1.andThenAsync(async (x) =>
+          x > 5
+            ? (new Ok(`val:${x}`) as Result<string, number>)
+            : (new Err(0) as Result<string, number>),
+        );
+
+        assert.ok(r2 instanceof Ok);
+        assert.strictEqual(r2.unwrap(), "val:10");
+      });
+
+      it("should allow orElse to recover with a different value type", () => {
+        const r: Result<number, string> = new Err("network fail");
+        const recovered: Result<number | string, boolean> = r.orElse(
+          (err) => new Ok(`recovered from ${err}`) as Result<string, boolean>,
+        );
+
+        assert.ok(recovered instanceof Ok);
+        assert.strictEqual(recovered.unwrap(), "recovered from network fail");
+      });
+
+      it("should allow orElse to return another Err", () => {
+        const r: Result<number, string> = new Err("fail");
+        const stillErr: Result<number | string, number> = r.orElse(
+          (err) => new Err(err.length) as Result<string, number>,
+        );
+
+        assert.ok(stillErr instanceof Err);
+        assert.strictEqual(stillErr.val, 4);
+      });
+    });
+
+    describe("Result.all edge cases", () => {
+      it("should handle single Ok element in Result.all", () => {
+        const res = Result.all([new Ok(42) as Result<number, string>]);
+
+        assert.ok(res instanceof Ok);
+        assert.deepStrictEqual(res.val, [42]);
+      });
+
+      it("should handle single Err element in Result.all", () => {
+        const res = Result.all([new Err("e") as Result<number, string>]);
+
+        assert.ok(res instanceof Err);
+        assert.strictEqual(res.val, "e");
+      });
+
+      it("should return the first error when multiple errors occur in Result.all", () => {
+        const res = Result.all([
+          new Ok(1) as Result<number, string>,
+          new Err("first") as Result<number, string>,
+          new Err("second") as Result<number, string>,
+        ]);
+
+        assert.ok(res instanceof Err);
+        assert.strictEqual(res.val, "first");
+      });
+
+      it("should handle heterogeneous Result types in Result.all", () => {
+        const r1 = new Ok(1) as Result<number, string>;
+        const r2 = new Ok("two") as Result<string, boolean>;
+        const r3 = new Ok(true) as Result<boolean, Error>;
+
+        const combined = Result.all([r1, r2, r3]);
+
+        assert.ok(combined instanceof Ok);
+        assert.deepStrictEqual(combined.val, [1, "two", true]);
+      });
+    });
+
+    describe("Result.attempt edge cases", () => {
+      it("should succeed on first try without waiting", async () => {
+        const res = await Result.attempt(async () => new Ok("first-try") as Result<string, string>);
+
+        assert.ok(res.ok);
+        assert.strictEqual(res.val, "first-try");
+      });
+
+      it("should succeed after throwing exception on first attempt", async () => {
+        let attempts = 0;
+        const res = await Result.attempt(
+          async () => {
+            attempts++;
+            if (attempts === 1) {
+              throw new Error("fail 1");
+            }
+            return new Ok("recovered") as Result<string, Error>;
+          },
+          { attempts: 3, timeout: 0, backoff: 0 },
+        );
+
+        assert.ok(res.ok);
+        assert.strictEqual(res.val, "recovered");
+        assert.strictEqual(attempts, 2);
+      });
+    });
+
+    describe("Result.wrap and wrapAsync edge cases", () => {
+      it("should wrap non-Error throws correctly in Err", () => {
+        const r1 = Result.wrap<number, unknown>(() => {
+          throw null;
+        });
+        assert.ok(r1 instanceof Err);
+        assert.strictEqual(r1.val, null);
+
+        const r2 = Result.wrap<number, unknown>(() => {
+          throw 404;
+        });
+        assert.ok(r2 instanceof Err);
+        assert.strictEqual(r2.val, 404);
+      });
+
+      it("should wrap non-Error async rejections correctly in Err", async () => {
+        const r = await Result.wrapAsync<number, unknown>(async () => {
+          throw undefined;
+        });
+        assert.ok(r instanceof Err);
+        assert.strictEqual(r.val, undefined);
       });
     });
   });
