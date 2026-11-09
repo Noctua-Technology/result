@@ -1,12 +1,12 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
 
-import { Ok, Err, Result } from "./result.js";
+import { Ok, Err, Result, type SyncKnownResult } from "./result.js";
 
 describe("Result", () => {
   describe("Ok", () => {
     it("should create an Ok result with a value", () => {
-      const result = new Ok(42) as Result<number, string>;
+      const result = new Ok(42) as SyncKnownResult<number, string>;
 
       assert.strictEqual(result.ok, true);
       assert.strictEqual(result.err, false);
@@ -14,19 +14,19 @@ describe("Result", () => {
     });
 
     it("should unwrap Ok value correctly", () => {
-      const result = new Ok("success") as Result<string, string>;
+      const result = new Ok("success") as SyncKnownResult<string, string>;
 
       assert.strictEqual(result.unwrap(), "success");
     });
 
     it("should return value from unwrapOr when Ok", () => {
-      const result = new Ok("original") as Result<string, string>;
+      const result = new Ok("original") as SyncKnownResult<string, string>;
 
       assert.strictEqual(result.unwrapOr("default"), "original");
     });
 
     it("should return value from unwrapOrElse when Ok", () => {
-      const result = new Ok("value") as Result<string, string>;
+      const result = new Ok("value") as SyncKnownResult<string, string>;
       let called = false;
 
       const output = result.unwrapOrElse((err) => {
@@ -39,13 +39,13 @@ describe("Result", () => {
     });
 
     it("should return value from expect when Ok", () => {
-      const result = new Ok("test") as Result<string, string>;
+      const result = new Ok("test") as SyncKnownResult<string, string>;
 
       assert.strictEqual(result.expect("should not throw"), "test");
     });
 
     it("should throw when expectErr is called on Ok", () => {
-      const result = new Ok("test") as Result<string, string>;
+      const result = new Ok("test") as SyncKnownResult<string, string>;
 
       assert.throws(() => result.expectErr("should throw"), {
         message: "should throw",
@@ -53,7 +53,7 @@ describe("Result", () => {
     });
 
     it("should include custom message in expectErr error", () => {
-      const result = new Ok("ok") as Result<string, string>;
+      const result = new Ok("ok") as SyncKnownResult<string, string>;
 
       assert.throws(
         () => result.expectErr("expected error"),
@@ -62,7 +62,7 @@ describe("Result", () => {
     });
 
     it("should map Ok value correctly", () => {
-      const result = new Ok(5) as Result<number, string>;
+      const result = new Ok(5) as SyncKnownResult<number, string>;
       const mapped = result.map((x) => x * 2);
 
       assert.ok(mapped instanceof Ok);
@@ -70,7 +70,7 @@ describe("Result", () => {
     });
 
     it("should chain operations with andThen", () => {
-      const result = new Ok(5) as Result<number, string>;
+      const result = new Ok(5) as SyncKnownResult<number, string>;
       const chained = result.andThen((x) => new Ok(x * 2));
 
       assert.ok(chained instanceof Ok);
@@ -78,7 +78,7 @@ describe("Result", () => {
     });
 
     it("should return Ok when mapErr is called on Ok", () => {
-      const result = new Ok("success") as Result<string, string>;
+      const result = new Ok("success") as SyncKnownResult<string, string>;
       const mapped = result.mapErr((err) => `mapped: ${err}`);
 
       assert.ok(mapped instanceof Ok);
@@ -86,20 +86,20 @@ describe("Result", () => {
     });
 
     it("should convert to string correctly", () => {
-      const result = new Ok("test") as Result<string, string>;
+      const result = new Ok("test") as SyncKnownResult<string, string>;
 
       assert.strictEqual(result.toString(), "Ok(test)");
     });
 
     it("should be iterable and yield the inner value once when iterable", () => {
-      const result = new Ok([1, 2, 3]) as Result<number[], string>;
+      const result = new Ok([1, 2, 3]) as SyncKnownResult<number[], string>;
       const values = [...result];
 
       assert.deepStrictEqual(values, [[1, 2, 3]]);
     });
 
     it("should be iterable and yield the inner value once when not iterable", () => {
-      const result = new Ok(100) as Result<number, string>;
+      const result = new Ok(100) as SyncKnownResult<number, string>;
       const values = [...result];
 
       assert.deepStrictEqual(values, [100]);
@@ -108,7 +108,7 @@ describe("Result", () => {
 
   describe("Err", () => {
     it("should create an Err result with an error", () => {
-      const result = new Err("error message") as Result<number, string>;
+      const result = new Err("error message") as SyncKnownResult<number, string>;
 
       assert.strictEqual(result.ok, false);
       assert.strictEqual(result.err, true);
@@ -116,13 +116,13 @@ describe("Result", () => {
     });
 
     it("should throw when unwrap is called on Err", () => {
-      const result = new Err("test error") as Result<number, string>;
+      const result = new Err("test error") as SyncKnownResult<number, string>;
 
       assert.throws(() => result.unwrap());
     });
 
     it("should include error value in unwrap message", () => {
-      const result = new Err("explode") as Result<number, string>;
+      const result = new Err("explode") as SyncKnownResult<number, string>;
 
       assert.throws(
         () => result.unwrap(),
@@ -131,13 +131,13 @@ describe("Result", () => {
     });
 
     it("should return default value from unwrapOr when Err", () => {
-      const result = new Err("error") as Result<string, string>;
+      const result = new Err("error") as SyncKnownResult<string, string>;
 
       assert.strictEqual(result.unwrapOr("default"), "default");
     });
 
     it("should call unwrapOrElse with error when Err", () => {
-      const result = new Err("missing") as Result<string, string>;
+      const result = new Err("missing") as SyncKnownResult<string, string>;
       let seen: string | undefined;
 
       const output = result.unwrapOrElse((err) => {
@@ -150,13 +150,13 @@ describe("Result", () => {
     });
 
     it("should throw when expect is called on Err", () => {
-      const result = new Err("test error") as Result<number, string>;
+      const result = new Err("test error") as SyncKnownResult<number, string>;
 
       assert.throws(() => result.expect("custom message"));
     });
 
     it("should include custom message in expect error", () => {
-      const result = new Err("boom") as Result<number, string>;
+      const result = new Err("boom") as SyncKnownResult<number, string>;
 
       assert.throws(
         () => result.expect("failed"),
@@ -165,19 +165,19 @@ describe("Result", () => {
     });
 
     it("should return error value from expectErr when Err", () => {
-      const result = new Err("test error") as Result<number, string>;
+      const result = new Err("test error") as SyncKnownResult<number, string>;
 
       assert.strictEqual(result.expectErr("should not throw"), "test error");
     });
 
     it("should ignore message when expectErr is called on Err", () => {
-      const result = new Err("original") as Result<number, string>;
+      const result = new Err("original") as SyncKnownResult<number, string>;
 
       assert.strictEqual(result.expectErr("ignored"), "original");
     });
 
     it("should return Err when map is called on Err", () => {
-      const result = new Err("error") as Result<number, string>;
+      const result = new Err("error") as SyncKnownResult<number, string>;
       const mapped = result.map((x) => x * 2);
 
       assert.ok(mapped instanceof Err);
@@ -185,7 +185,7 @@ describe("Result", () => {
     });
 
     it("should return Err when andThen is called on Err", () => {
-      const result = new Err("error") as Result<number, string>;
+      const result = new Err("error") as SyncKnownResult<number, string>;
       const chained = result.andThen((x) => new Ok(x * 2));
 
       assert.ok(chained instanceof Err);
@@ -193,7 +193,7 @@ describe("Result", () => {
     });
 
     it("should map error value correctly", () => {
-      const result = new Err("original error") as Result<number, string>;
+      const result = new Err("original error") as SyncKnownResult<number, string>;
       const mapped = result.mapErr((err) => `mapped: ${err}`);
 
       assert.ok(mapped instanceof Err);
@@ -201,13 +201,13 @@ describe("Result", () => {
     });
 
     it("should convert to string correctly", () => {
-      const result = new Err("test error") as Result<number, string>;
+      const result = new Err("test error") as SyncKnownResult<number, string>;
 
       assert.strictEqual(result.toString(), "Err(test error)");
     });
 
     it("should provide stack trace", () => {
-      const result = new Err("error") as Result<number, string>;
+      const result = new Err("error") as SyncKnownResult<number, string>;
 
       if (result.err) {
         assert.ok(result.stack?.includes("Err(error)"));
@@ -215,7 +215,7 @@ describe("Result", () => {
     });
 
     it("should not be iterable", () => {
-      const result = new Err("error") as Result<number, string>;
+      const result = new Err("error") as SyncKnownResult<number, string>;
       const values = [...result];
 
       assert.deepStrictEqual(values, []);
@@ -421,9 +421,9 @@ describe("Result", () => {
   describe("Result.all", () => {
     it("should return Ok with all values when all results are Ok", () => {
       const result = Result.all([
-        new Ok(1) as Result<number, string>,
-        new Ok(2) as Result<number, string>,
-        new Ok(3) as Result<number, string>,
+        new Ok(1) as SyncKnownResult<number, string>,
+        new Ok(2) as SyncKnownResult<number, string>,
+        new Ok(3) as SyncKnownResult<number, string>,
       ]);
 
       assert.ok(result instanceof Ok);
@@ -432,9 +432,9 @@ describe("Result", () => {
 
     it("should return the first Err when any result is Err", () => {
       const result = Result.all([
-        new Ok(1) as Result<number, string>,
-        new Err("boom") as Result<number, string>,
-        new Ok(3) as Result<number, string>,
+        new Ok(1) as SyncKnownResult<number, string>,
+        new Err("boom") as SyncKnownResult<number, string>,
+        new Ok(3) as SyncKnownResult<number, string>,
       ]);
 
       assert.ok(result instanceof Err);
@@ -443,8 +443,8 @@ describe("Result", () => {
 
     it("should return the first Err and not continue evaluating", () => {
       const result = Result.all([
-        new Err("first") as Result<number, string>,
-        new Err("second") as Result<number, string>,
+        new Err("first") as SyncKnownResult<number, string>,
+        new Err("second") as SyncKnownResult<number, string>,
       ]);
 
       assert.ok(result instanceof Err);
@@ -459,8 +459,8 @@ describe("Result", () => {
     });
 
     it("should preserve tuple types", () => {
-      const a = new Ok(42) as Result<number, string>;
-      const b = new Ok("hello") as Result<string, string>;
+      const a = new Ok(42) as SyncKnownResult<number, string>;
+      const b = new Ok("hello") as SyncKnownResult<string, string>;
       const result = Result.all([a, b]);
 
       assert.ok(result instanceof Ok);
@@ -471,7 +471,7 @@ describe("Result", () => {
   describe("Functional Combinators", () => {
     describe("orElse", () => {
       it("should return the original Ok", () => {
-        const result = new Ok(42) as Result<number, string>;
+        const result = new Ok(42) as SyncKnownResult<number, string>;
 
         const chained = result.orElse((err) => new Ok(100));
 
@@ -481,7 +481,7 @@ describe("Result", () => {
 
       it("should not invoke mapper on Ok", () => {
         let called = false;
-        const result = new Ok(42) as Result<number, string>;
+        const result = new Ok(42) as SyncKnownResult<number, string>;
         const chained = result.orElse((err) => {
           called = true;
           return new Ok(100);
@@ -492,15 +492,15 @@ describe("Result", () => {
       });
 
       it("should map Err to a new Result", () => {
-        const result = new Err("error") as Result<number, string>;
+        const result = new Err("error") as SyncKnownResult<number, string>;
         const chained = result.orElse((err) => new Ok(100));
 
         assert.ok(chained instanceof Ok);
         assert.strictEqual(chained.unwrap(), 100);
       });
 
-      it("should map Err to a new Result when typed as Result<T, E>", () => {
-        const result = new Err("error") as Result<number, string>;
+      it("should map Err to a new Result when typed as SyncKnownResult<T, E>", () => {
+        const result = new Err("error") as SyncKnownResult<number, string>;
         const chained = result.orElse((err) => new Ok(err.length));
 
         assert.ok(chained instanceof Ok);
@@ -508,7 +508,7 @@ describe("Result", () => {
       });
 
       it("should allow chaining further operations after orElse", () => {
-        const result = new Err("error") as Result<number, string>;
+        const result = new Err("error") as SyncKnownResult<number, string>;
         const chained = result.orElse((err) => new Ok(err.length)).map((x) => x * 10);
 
         assert.ok(chained instanceof Ok);
@@ -516,7 +516,7 @@ describe("Result", () => {
       });
 
       it("should return the new Err when mapper returns an Err", () => {
-        const result = new Err("initial") as Result<number, string>;
+        const result = new Err("initial") as SyncKnownResult<number, string>;
         const chained = result.orElse((err) => new Err(`fallback-${err}`));
 
         assert.ok(chained instanceof Err);
@@ -526,14 +526,14 @@ describe("Result", () => {
 
     describe("mapOr", () => {
       it("should return mapped value on Ok", () => {
-        const result = new Ok(5) as Result<number, string>;
-        const mapped = result.mapOr(10, (x) => x * 2);
+        const result = new Ok(5) as SyncKnownResult<number, string>;
+        const mapped = result.mapOr(10, (x: number) => x * 2);
 
         assert.strictEqual(mapped, 10);
       });
 
       it("should return default value on Err", () => {
-        const result = new Err("error") as Result<number, string>;
+        const result = new Err("error") as SyncKnownResult<number, string>;
         const mapped = result.mapOr(10, (x) => x * 2);
 
         assert.strictEqual(mapped, 10);
@@ -542,7 +542,7 @@ describe("Result", () => {
 
     describe("mapOrElse", () => {
       it("should return mapped value on Ok", () => {
-        const result = new Ok(5) as Result<number, string>;
+        const result = new Ok(5) as SyncKnownResult<number, string>;
         const mapped = result.mapOrElse(
           (err) => err.length,
           (x) => x * 2,
@@ -552,7 +552,7 @@ describe("Result", () => {
       });
 
       it("should return default function value on Err", () => {
-        const result = new Err("error") as Result<number, string>;
+        const result = new Err("error") as SyncKnownResult<number, string>;
         const mapped = result.mapOrElse(
           (err) => `default: ${err.length}`,
           (x) => `mapped: ${x * 2}`,
@@ -596,18 +596,18 @@ describe("Result", () => {
       const obj = Object.create(null);
       obj.key = "value";
 
-      const result = new Ok(obj) as Result<{ key: string }, string>;
+      const result = new Ok(obj) as SyncKnownResult<{ key: string }, string>;
 
       assert.strictEqual(result.toString(), 'Ok({"key":"value"})');
     });
 
     it("should handle null in toString", () => {
-      const result = new Ok(null) as Result<null, string>;
+      const result = new Ok(null) as SyncKnownResult<null, string>;
       assert.strictEqual(result.toString(), "Ok(null)");
     });
 
     it("should handle undefined in toString", () => {
-      const result = new Ok(undefined) as Result<undefined, string>;
+      const result = new Ok(undefined) as SyncKnownResult<undefined, string>;
       assert.strictEqual(result.toString(), "Ok(undefined)");
     });
 
@@ -617,14 +617,14 @@ describe("Result", () => {
           throw new Error("cannot convert to string");
         },
       };
-      const result = new Ok(badObj) as Result<{ toString(): string }, string>;
+      const result = new Ok(badObj) as SyncKnownResult<{ toString(): string }, string>;
       assert.strictEqual(result.toString(), "Ok([Unserializable Value])");
     });
   });
 
   describe("Complex scenarios", () => {
     it("should handle chaining multiple operations", () => {
-      const result = (new Ok(5) as Result<number, string>)
+      const result = (new Ok(5) as SyncKnownResult<number, string>)
         .map((x) => x * 2)
         .andThen((x) => new Ok(x + 3))
         .map((x) => x.toString());
@@ -634,7 +634,7 @@ describe("Result", () => {
     });
 
     it("should handle error propagation in chains", () => {
-      const result = (new Ok(5) as Result<number, string>)
+      const result = (new Ok(5) as SyncKnownResult<number, string>)
         .map((x) => x * 2)
         .andThen(() => new Err("chain error"))
         .map((x) => x + 3);
@@ -645,15 +645,15 @@ describe("Result", () => {
 
     it("should handle custom error types", () => {
       const customError = { message: "custom error" };
-      const result = new Err(customError) as Result<number, typeof customError>;
+      const result = new Err(customError) as SyncKnownResult<number, typeof customError>;
 
       assert.strictEqual(result.val, customError);
       assert.strictEqual(result.val.message, "custom error");
     });
 
     it("should handle null and undefined values", () => {
-      const nullResult = new Ok(null) as Result<null, string>;
-      const undefinedResult = new Ok(undefined) as Result<undefined, string>;
+      const nullResult = new Ok(null) as SyncKnownResult<null, string>;
+      const undefinedResult = new Ok(undefined) as SyncKnownResult<undefined, string>;
 
       assert.strictEqual(nullResult.unwrap(), null);
       assert.strictEqual(undefinedResult.unwrap(), undefined);
@@ -661,7 +661,7 @@ describe("Result", () => {
 
     it("should handle complex objects", () => {
       const complexObj = { id: 1, name: "test", data: [1, 2, 3] };
-      const result = new Ok(complexObj) as Result<typeof complexObj, string>;
+      const result = new Ok(complexObj) as SyncKnownResult<typeof complexObj, string>;
 
       assert.deepStrictEqual(result.unwrap(), complexObj);
       assert.strictEqual(result.toString(), `Ok({"id":1,"name":"test","data":[1,2,3]})`);
@@ -670,7 +670,7 @@ describe("Result", () => {
 
   describe("Cloning and Stack Trace Preservation", () => {
     it("should shallow clone an Ok result", () => {
-      const original = new Ok({ val: 42 }) as Result<{ val: number }, string>;
+      const original = new Ok({ val: 42 }) as SyncKnownResult<{ val: number }, string>;
       const cloned = original.clone();
 
       assert.ok(cloned instanceof Ok);
@@ -679,7 +679,7 @@ describe("Result", () => {
     });
 
     it("should shallow clone an Err result and preserve its private stack trace", () => {
-      const original = new Err("original error") as Result<number, string>;
+      const original = new Err("original error") as SyncKnownResult<number, string>;
       const cloned = original.clone();
 
       assert.ok(cloned instanceof Err);
@@ -693,7 +693,7 @@ describe("Result", () => {
     it("should shallow clone an Err result and preserve its attempted property", () => {
       const original = new Err("original error");
       original.attempted = true;
-      const result = original as Result<number, string>;
+      const result = original as SyncKnownResult<number, string>;
       const cloned = result.clone();
 
       assert.ok(cloned instanceof Err);
@@ -725,7 +725,7 @@ describe("Result", () => {
   describe("Async Chaining Combinators", () => {
     describe("mapAsync", () => {
       it("should map an Ok value using an async function", async () => {
-        const result = new Ok(5) as Result<number, string>;
+        const result = new Ok(5) as SyncKnownResult<number, string>;
         const mapped = await result.mapAsync(async (x) => x * 2);
 
         assert.ok(mapped instanceof Ok);
@@ -733,7 +733,7 @@ describe("Result", () => {
       });
 
       it("should bypass mapAsync on an Err value", async () => {
-        const result = new Err("fail") as Result<number, string>;
+        const result = new Err("fail") as SyncKnownResult<number, string>;
         const mapped = await result.mapAsync(async (x) => x * 2);
 
         assert.ok(mapped instanceof Err);
@@ -743,7 +743,7 @@ describe("Result", () => {
 
     describe("andThenAsync", () => {
       it("should chain an Ok value to another async Ok result", async () => {
-        const result = new Ok(5) as Result<number, string>;
+        const result = new Ok(5) as SyncKnownResult<number, string>;
         const chained = await result.andThenAsync(async (x) => new Ok(x * 2));
 
         assert.ok(chained instanceof Ok);
@@ -751,7 +751,7 @@ describe("Result", () => {
       });
 
       it("should chain an Ok value to an async Err result", async () => {
-        const result = new Ok(5) as Result<number, string>;
+        const result = new Ok(5) as SyncKnownResult<number, string>;
         const chained = await result.andThenAsync(async (x) => new Err("failed chain"));
 
         assert.ok(chained instanceof Err);
@@ -759,7 +759,7 @@ describe("Result", () => {
       });
 
       it("should bypass andThenAsync on an Err value", async () => {
-        const result = new Err("initial fail") as Result<number, string>;
+        const result = new Err("initial fail") as SyncKnownResult<number, string>;
         let called = false;
         const chained = await result.andThenAsync(async (x) => {
           called = true;
@@ -776,7 +776,7 @@ describe("Result", () => {
   describe("Edge cases and union typing on Result<T, E>", () => {
     describe("falsy values in Ok", () => {
       it("should handle 0 correctly in all combinators", () => {
-        const result = new Ok(0) as Result<number, string>;
+        const result = new Ok(0);
 
         assert.strictEqual(result.unwrap(), 0);
         assert.strictEqual(result.unwrapOr(10), 0);
@@ -800,7 +800,7 @@ describe("Result", () => {
       });
 
       it("should handle empty string correctly in all combinators", () => {
-        const result = new Ok("") as Result<string, string>;
+        const result = new Ok("");
 
         assert.strictEqual(result.unwrap(), "");
         assert.strictEqual(result.unwrapOr("default"), "");
@@ -823,7 +823,7 @@ describe("Result", () => {
       });
 
       it("should handle false correctly in all combinators", () => {
-        const result = new Ok(false) as Result<boolean, string>;
+        const result = new Ok(false);
 
         assert.strictEqual(result.unwrap(), false);
         assert.strictEqual(result.unwrapOr(true), false);
@@ -846,7 +846,7 @@ describe("Result", () => {
       });
 
       it("should handle NaN correctly in Ok", () => {
-        const result = new Ok(Number.NaN) as Result<number, string>;
+        const result = new Ok(Number.NaN) as SyncKnownResult<number, string>;
 
         assert.strictEqual(Number.isNaN(result.unwrap()), true);
         assert.strictEqual(Number.isNaN(result.unwrapOr(10)), true);
@@ -854,8 +854,8 @@ describe("Result", () => {
       });
 
       it("should handle null and undefined correctly in all combinators", () => {
-        const nullRes = new Ok(null) as Result<null, string>;
-        const undefinedRes = new Ok(undefined) as Result<undefined, string>;
+        const nullRes = new Ok(null) as SyncKnownResult<null, string>;
+        const undefinedRes = new Ok(undefined) as SyncKnownResult<undefined, string>;
 
         assert.strictEqual(nullRes.unwrap(), null);
         assert.strictEqual(nullRes.unwrapOr(undefined), null);
@@ -875,7 +875,7 @@ describe("Result", () => {
 
     describe("falsy values in Err", () => {
       it("should handle 0 as error value correctly", () => {
-        const result = new Err(0) as Result<string, number>;
+        const result = new Ok(0).andThen((val) => (val > 0 ? new Ok("") : new Err(0)));
 
         assert.strictEqual(result.expectErr("fail"), 0);
         assert.strictEqual(result.unwrapOr("fallback"), "fallback");
@@ -898,7 +898,7 @@ describe("Result", () => {
       });
 
       it("should handle empty string as error value correctly", () => {
-        const result = new Err("") as Result<number, string>;
+        const result = new Err("") as SyncKnownResult<number, string>;
 
         assert.strictEqual(result.expectErr("fail"), "");
         assert.strictEqual(result.unwrapOr(42), 42);
@@ -916,7 +916,7 @@ describe("Result", () => {
       });
 
       it("should handle false as error value correctly", () => {
-        const result = new Err(false) as Result<number, boolean>;
+        const result = new Err(false) as SyncKnownResult<number, boolean>;
 
         assert.strictEqual(result.expectErr("fail"), false);
         assert.strictEqual(result.unwrapOr(42), 42);
@@ -929,7 +929,7 @@ describe("Result", () => {
 
     describe("type narrowing via .ok and .err properties", () => {
       it("should narrow Result<T, E> to Ok<T> when checking .ok", () => {
-        const result: Result<number, string> = new Ok(42);
+        const result: SyncKnownResult<number, string> = new Ok(42);
 
         if (result.ok) {
           const val: number = result.val;
@@ -940,7 +940,7 @@ describe("Result", () => {
       });
 
       it("should narrow Result<T, E> to Err<E> when checking .err", () => {
-        const result: Result<number, string> = new Err("narrowed error");
+        const result: SyncKnownResult<number, string> = new Err("narrowed error");
 
         if (result.err) {
           const errVal: string = result.val;
@@ -954,11 +954,11 @@ describe("Result", () => {
 
     describe("chaining with mixed union types", () => {
       it("should propagate union types through andThen", () => {
-        const r1: Result<number, string> = new Ok(10);
-        const r2: Result<string, string | number> = r1.andThen((x) =>
+        const r1: SyncKnownResult<number, string> = new Ok(10);
+        const r2: SyncKnownResult<string, string | number> = r1.andThen((x) =>
           x > 5
-            ? (new Ok(`val:${x}`) as Result<string, number>)
-            : (new Err(0) as Result<string, number>),
+            ? (new Ok(`val:${x}`) as SyncKnownResult<string, number>)
+            : (new Err(0) as SyncKnownResult<string, number>),
         );
 
         assert.ok(r2 instanceof Ok);
@@ -966,11 +966,11 @@ describe("Result", () => {
       });
 
       it("should propagate union types through andThenAsync", async () => {
-        const r1: Result<number, string> = new Ok(10);
-        const r2: Result<string, string | number> = await r1.andThenAsync(async (x) =>
+        const r1: SyncKnownResult<number, string> = new Ok(10);
+        const r2: SyncKnownResult<string, string | number> = await r1.andThen(async (x) =>
           x > 5
-            ? (new Ok(`val:${x}`) as Result<string, number>)
-            : (new Err(0) as Result<string, number>),
+            ? (new Ok(`val:${x}`) as SyncKnownResult<string, number>)
+            : (new Err(0) as SyncKnownResult<string, number>),
         );
 
         assert.ok(r2 instanceof Ok);
@@ -978,9 +978,9 @@ describe("Result", () => {
       });
 
       it("should allow orElse to recover with a different value type", () => {
-        const r: Result<number, string> = new Err("network fail");
-        const recovered: Result<number | string, boolean> = r.orElse(
-          (err) => new Ok(`recovered from ${err}`) as Result<string, boolean>,
+        const r: SyncKnownResult<number, string> = new Err("network fail");
+        const recovered: SyncKnownResult<number | string, boolean> = r.orElse(
+          (err) => new Ok(`recovered from ${err}`) as SyncKnownResult<string, boolean>,
         );
 
         assert.ok(recovered instanceof Ok);
@@ -988,9 +988,9 @@ describe("Result", () => {
       });
 
       it("should allow orElse to return another Err", () => {
-        const r: Result<number, string> = new Err("fail");
-        const stillErr: Result<number | string, number> = r.orElse(
-          (err) => new Err(err.length) as Result<string, number>,
+        const r: SyncKnownResult<number, string> = new Err("fail");
+        const stillErr: SyncKnownResult<number | string, number> = r.orElse(
+          (err) => new Err(err.length) as SyncKnownResult<string, number>,
         );
 
         assert.ok(stillErr instanceof Err);
@@ -1000,14 +1000,14 @@ describe("Result", () => {
 
     describe("Result.all edge cases", () => {
       it("should handle single Ok element in Result.all", () => {
-        const res = Result.all([new Ok(42) as Result<number, string>]);
+        const res = Result.all([new Ok(42) as SyncKnownResult<number, string>]);
 
         assert.ok(res instanceof Ok);
         assert.deepStrictEqual(res.val, [42]);
       });
 
       it("should handle single Err element in Result.all", () => {
-        const res = Result.all([new Err("e") as Result<number, string>]);
+        const res = Result.all([new Err("e") as SyncKnownResult<number, string>]);
 
         assert.ok(res instanceof Err);
         assert.strictEqual(res.val, "e");
@@ -1015,9 +1015,9 @@ describe("Result", () => {
 
       it("should return the first error when multiple errors occur in Result.all", () => {
         const res = Result.all([
-          new Ok(1) as Result<number, string>,
-          new Err("first") as Result<number, string>,
-          new Err("second") as Result<number, string>,
+          new Ok(1) as SyncKnownResult<number, string>,
+          new Err("first") as SyncKnownResult<number, string>,
+          new Err("second") as SyncKnownResult<number, string>,
         ]);
 
         assert.ok(res instanceof Err);
@@ -1025,9 +1025,9 @@ describe("Result", () => {
       });
 
       it("should handle heterogeneous Result types in Result.all", () => {
-        const r1 = new Ok(1) as Result<number, string>;
-        const r2 = new Ok("two") as Result<string, boolean>;
-        const r3 = new Ok(true) as Result<boolean, Error>;
+        const r1 = new Ok(1) as SyncKnownResult<number, string>;
+        const r2 = new Ok("two") as SyncKnownResult<string, boolean>;
+        const r3 = new Ok(true) as SyncKnownResult<boolean, Error>;
 
         const combined = Result.all([r1, r2, r3]);
 
@@ -1038,7 +1038,9 @@ describe("Result", () => {
 
     describe("Result.attempt edge cases", () => {
       it("should succeed on first try without waiting", async () => {
-        const res = await Result.attempt(async () => new Ok("first-try") as Result<string, string>);
+        const res = await Result.attempt(
+          async () => new Ok("first-try") as SyncKnownResult<string, string>,
+        );
 
         assert.ok(res.ok);
         assert.strictEqual(res.val, "first-try");
@@ -1052,7 +1054,7 @@ describe("Result", () => {
             if (attempts === 1) {
               throw new Error("fail 1");
             }
-            return new Ok("recovered") as Result<string, Error>;
+            return new Ok("recovered") as SyncKnownResult<string, Error>;
           },
           { attempts: 3, timeout: 0, backoff: 0 },
         );
