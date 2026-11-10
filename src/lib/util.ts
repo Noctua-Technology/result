@@ -27,3 +27,7 @@ export function toString(val: unknown): string {
 export function wait(time: number) {
   return new Promise((resolve) => setTimeout(resolve, time));
 }
+
+export function isNormalObject(val: unknown): val is object {
+  return typeof val === "object" && !Array.isArray(val) && val !== null;
+}
